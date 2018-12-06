@@ -4,7 +4,12 @@ from tensorflow import keras
 import numpy as np
 
 print(tf.__version__)
-
+#
+# I modified the neural network and made the existing imbd data fit.
+#
+#
+#
+#
 ##############################################################
 #  Get Video Game Data
 ##############################################################

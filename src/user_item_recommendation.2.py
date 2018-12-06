@@ -5,7 +5,12 @@ import os
 import numpy as np
 
 print(tf.__version__)
-
+#
+# I replaced the imbd data with the video game review dataset
+#
+#
+#
+#
 ##############################################################
 #  Get Video Game Data
 ##############################################################

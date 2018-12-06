@@ -5,7 +5,12 @@ import os
 import numpy as np
 
 print(tf.__version__)
-
+#
+# I extracted the embeddings and analyzed them
+#
+#
+#
+#
 ##############################################################
 #  Get Video Game Data
 ##############################################################
@@ -187,4 +192,16 @@ plt.ylabel('Accuracy')
 plt.legend()
 
 plt.show()
+
+##############################################################
+#  Extract Embeddings
+##############################################################
+user_embedded = model.get_layer('user_embedding')
+user_weights = user_embedded.get_weights()[0]
+print(user_weights.shape)
+
+#normalize the embeddings
+user_weights = user_weights / np.linalg.norm(user_weights, axis = 1).reshape((-1, 1))
+print(user_weights[0][:10])
+print(np.sum(np.square(user_weights[0])))
 
