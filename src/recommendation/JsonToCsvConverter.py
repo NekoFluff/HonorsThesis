@@ -8,7 +8,7 @@ from options.AllOptions import AllOptions
 from Logger import default_logger
 
 class JsonToCsvConverter():
-    
+
   def log(self, output):
     '''A simple logging function the pre-appends a [JsonToCsvConverter] tag to the beginning of any message passed in.
     '''
@@ -17,10 +17,12 @@ class JsonToCsvConverter():
   def update_paths(self, target_file_name):
     '''Updates the from/to file paths based on the passed in 'target_file_name'.
     '''
-    self.target_json_path = "{}/{}.json".format(AllOptions.DataOptions.raw_folder_path, target_file_name)
-    self.stripped_json_path = "{}/Modified_{}.json".format(AllOptions.DataOptions.raw_folder_path, target_file_name)
-    self.target_csv_path = "{}/Modified_{}.csv".format(AllOptions.DataOptions.raw_folder_path, target_file_name)
-    
+    self.target_json_path = "{}/{}.json".format(
+        AllOptions.DataOptions.raw_folder_path, target_file_name)
+    self.stripped_json_path = "{}/Modified_{}.json".format(
+        AllOptions.DataOptions.raw_folder_path, target_file_name)
+    self.target_csv_path = "{}/Modified_{}.csv".format(
+        AllOptions.DataOptions.raw_folder_path, target_file_name)
 
   def create_csv(self, target_file_name):
     '''Creates a csv based on a 'target_file_name' in json.
@@ -31,7 +33,7 @@ class JsonToCsvConverter():
     default_logger.log_time()
     self.log("Reading json file")
     self.log("Stripping unnecessary data and converting to proper json...")
-    
+
     # Attempt to filter the data
     # self.log("From: {}\t To: {}".format(self.target_json_path, self.stripped_json_path))
     self.filter_data(self.target_json_path, self.stripped_json_path)
@@ -58,13 +60,14 @@ class JsonToCsvConverter():
     data = pd.read_json("test.json")
 
     # Print out the shape of the data object
-    self.log("{0} Reviews (Rows), {1} Columns".format(data.shape[0] ,data.shape[1]))
+    self.log("{0} Reviews (Rows), {1} Columns".format(
+        data.shape[0], data.shape[1]))
 
     # Print out the first few entries of the dataset
-    # print(data.head()) 
+    # print(data.head())
 
     group_by_reviewer = data.groupby(['reviewerID'])['reviewerID'].count()
-    # print(group_by_reviewer.head()) 
+    # print(group_by_reviewer.head())
     print("# Unique Reviewers: {0}".format(len(group_by_reviewer)))
     # print("# Unique Reviewers: {0}".format(len(data['reviewerID'].unique()))) # An alternative way for the above line
     print("# Unique Items: {0}".format(len(data['asin'].unique())))
@@ -74,7 +77,6 @@ class JsonToCsvConverter():
     # Users are connected if they rate the same item
     # graph(data) # WARNING THIS IS VERY SLOW
     self.log("Finished analysis")
-
 
   def convert_json_to_csv(self, json_file, csv_file):
     with open(json_file, encoding='utf-8-sig') as f_input:
@@ -105,8 +107,8 @@ class JsonToCsvConverter():
       f.write(data)
       f.write("]\n")
 
-
   # Nodes represent users. Draw a line between users if they have rated thte same item
+
   def graph(self, df):
     G = nx.Graph()
 
@@ -115,10 +117,10 @@ class JsonToCsvConverter():
     total_length = df.shape[0]
     dataFrame = df.sort_values("asin", ascending=False)
 
-
     for index, (_, row) in enumerate(dataFrame.iterrows()):
       if index % 1000 == 0:
-        print("{0:.2f}% Complete: {1}/{2}".format(float(index)/float(total_length)*100.0, index, total_length))
+        print("{0:.2f}% Complete: {1}/{2}".format(float(index) /
+                                                  float(total_length)*100.0, index, total_length))
       #print("-------------------------------")
       #print(row)
       row1_item = row['asin']
@@ -142,7 +144,7 @@ class JsonToCsvConverter():
             G[reviewer1][reviewer2]['count'] += 1
           else:
             #print("Adding edge")
-            G.add_edges_from([(reviewer1, reviewer2, {'count':1})])
+            G.add_edges_from([(reviewer1, reviewer2, {'count': 1})])
             #G.add_edges_from([(1, 2, {'color': 'blue'}), (2, 3, {'weight': 8})])
         index2 = index2 + 1
 
@@ -150,7 +152,7 @@ class JsonToCsvConverter():
 
     print("Number of nodes: %d" % G.number_of_nodes())
     print("Number of edges: %d" % G.number_of_edges())
-    
+
     # POSSIBLE ANALYSIS: Clustering Coefficient, Pagerank, Diameter, Closeness, Betweeness, HITS
 
     # ISSUE: Graph is not connected
@@ -161,19 +163,17 @@ class JsonToCsvConverter():
     print("CLUSTERING COEFFICIENT (TRANSITIVITY): ")
     print(nx.transitivity(G))
 
-
     # PAGE RANK --------------------------------------
     pr = nx.pagerank(G, alpha=0.9)
 
     pr_list = []
     for key, value in pr.items():
-      temp = [key,value]
+      temp = [key, value]
       pr_list.append(temp)
-    
+
     pagerank_df = pd.DataFrame(pr_list)
     pagerank_df.to_csv('pagerank.csv')
 
-    
     print("PAGE RANK: ")
     print("Saved to pagerank.csv")
     #print(pr)
@@ -187,16 +187,15 @@ class JsonToCsvConverter():
     plt.show()
 
     ##### Display a histogram -------------------------------
-    degree_histogram(G)
-    
+    self.degree_histogram(G)
 
   def degree_histogram(self, G):
     # Get degree sequence
-    ds = sorted([d for n, d in G.degree()], reverse=True)  
+    ds = sorted([d for n, d in G.degree()], reverse=True)
     print("Degree sequence " + str(ds))
 
     # Count degrees
-    degreeCount = collections.Counter(ds) 
+    degreeCount = collections.Counter(ds)
     print(degreeCount)
 
     # Split into degree, count
@@ -205,18 +204,19 @@ class JsonToCsvConverter():
     print(count)
 
     # Plot the data!
-    figure, axis = plt.subplots() 
+    figure, axis = plt.subplots()
     plt.bar(deg, count, width=0.80, color='green')
 
     plt.title("User Degree Histogram")
     plt.ylabel("Count")
     plt.xlabel("Degree")
-    axis.set_xticks([0,10,20,30,40,50,60,70,80])
-    axis.set_xticklabels([0,10,20,30,40,50,60,70,80])
+    axis.set_xticks([0, 10, 20, 30, 40, 50, 60, 70, 80])
+    axis.set_xticklabels([0, 10, 20, 30, 40, 50, 60, 70, 80])
 
     plt.savefig('degrees_graph.png')
 
     plt.show()
+
 
 if __name__ == "__main__":
   converter = JsonToCsvConverter()

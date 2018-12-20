@@ -33,7 +33,7 @@ class Logger():
         now_checkpoint = datetime.now()
         time_difference = self.get_time_difference_since_last_checkpoint(now_checkpoint, reset_checkpoint)
         time_string = "{:%m-%d %H:%M}   {:d}s".format(now_checkpoint, time_difference.seconds)
-        print("{:_^100s}".format(time_string))
+        print("{:_^125s}".format(time_string))
 
     def log(self, output, with_time=False, reset_checkpoint=True):
         '''Logs an output string with the time optionally

@@ -11,13 +11,14 @@ from Logger import Logger, default_logger
 from options.AllOptions import AllOptions
 import pdb
 
+
 class DataPreproccessor(object):
 
     def log(self, output):
         '''A simple logging function the pre-appends a [DataPreprocessor] tag to the beginning of any message passed in.
         '''
         default_logger.log("[DataPreproccessor]: " + output)
-    
+
     def __init__(self, raw_folder_path, cache_folder_path, csv_file_name):
         default_logger.log_time()
         self.raw_folder_path = raw_folder_path
@@ -25,22 +26,23 @@ class DataPreproccessor(object):
         self.target_csv_file = csv_file_name
         self.log("Initialized preprocessor")
 
-
     def get_user_reviews(self):
         '''Get user reviews
         '''
         user_reviews = None
 
-        user_reviews_pkl_file_path = self.cache_folder_path + self.csv_file_name + '.pkl'
+        user_reviews_pkl_file_path = self.cache_folder_path + self.target_csv_file + '.pkl'
         if os.path.exists(user_reviews_pkl_file_path):
             with open(user_reviews_pkl_file_path, 'rb') as user_reviews_file:
-                self.log("Loaded stored user reviews data at: {}".format(user_reviews_pkl_file_path))
-                users_reviews = pickle.load(user_reviews_file)
+                self.log("Loaded stored user reviews data at: {}".format(
+                    user_reviews_pkl_file_path))
+                user_reviews = pickle.load(user_reviews_file)
         else:
             # Log the time of this function call
             default_logger.set_checkpoint()
             default_logger.log_time()
-            user_reviews = pd.read_csv(self.raw_folder_path + self.csv_file_name + '.csv')
+            user_reviews = pd.read_csv(
+                self.raw_folder_path + self.target_csv_file + '.csv')
 
             # Get products
             product_ids = array(user_reviews.asin)
@@ -48,8 +50,10 @@ class DataPreproccessor(object):
 
             # Integer encode products
             product_label_encoder = LabelEncoder()
-            integer_encoded_products = product_label_encoder.fit_transform(product_ids)
-            self.log("First 10 ENCODED products IDs: {}".format(integer_encoded_products[:10]))
+            integer_encoded_products = product_label_encoder.fit_transform(
+                product_ids)
+            self.log("First 10 ENCODED products IDs: {}".format(
+                integer_encoded_products[:10]))
 
             # Reorganize column labels for products
             user_reviews['original_asin'] = user_reviews['asin']
@@ -61,8 +65,10 @@ class DataPreproccessor(object):
 
             # Integer encode reviewers
             reviewer_label_encoder = LabelEncoder()
-            integer_encoded_reviewers = reviewer_label_encoder.fit_transform(user_ids)
-            self.log("First 10 ENCODED user IDs: {}".format(integer_encoded_reviewers[:10]))
+            integer_encoded_reviewers = reviewer_label_encoder.fit_transform(
+                user_ids)
+            self.log("First 10 ENCODED user IDs: {}".format(
+                integer_encoded_reviewers[:10]))
 
             # Reorganize column labls for users
             user_reviews['original_reviewerID'] = user_reviews['reviewerID']
@@ -71,33 +77,35 @@ class DataPreproccessor(object):
             # Save the user reviews dataframe to a file
             self.log("Saving preprocessed user reviews data...")
             with open(user_reviews_pkl_file_path, 'wb') as user_reviews_file:
-                pickle.dump(users_reviews, user_reviews_file, pickle.HIGHEST_PROTOCOL)
-            self.log("Saved user reviews data at: {}".format(user_reviews_pkl_file_path))
+                pickle.dump(user_reviews, user_reviews_file,
+                            pickle.HIGHEST_PROTOCOL)
+            self.log("Saved user reviews data at: {}".format(
+                user_reviews_pkl_file_path))
 
             # Log the time this function call took
             default_logger.log_time()
 
         return user_reviews
 
-
-    def get_baskets_reviews(self, prior_or_train, reconstruct = False, none_idx = 10673):
+    def get_baskets_reviews(self, prior_or_train, reconstruct=False, none_idx=10673):
         '''
         TAKEN FROM DREAM
         DEPRECIATED UNTIL I GO BACK AND READ THE PAPER AGAIN
         '''
         filepath = self.cache_dir + './reviews_' + prior_or_train + '.pkl'
-       
+
         if (not reconstruct) and os.path.exists(filepath):
             with open(filepath, 'rb') as f:
                 user_reviews = pickle.load(f)
                 print(user_reviews)
 
-        else:          
+        else:
             # Retrieve data and sort
             user_reviews = self.get_user_reviews()
             print("Original")
             print(user_reviews)
-            user_reviews = user_reviews.sort_values(['reviewerID', 'unixReviewTime', 'asin', 'overall'], ascending = True)
+            user_reviews = user_reviews.sort_values(
+                ['reviewerID', 'unixReviewTime', 'asin', 'overall'], ascending=True)
 
             print("Sorted")
             print(user_reviews)
@@ -107,11 +115,13 @@ class DataPreproccessor(object):
 
             print("RID, PID")
             print(rid_pid)
-            user_reviews = user_reviews.groupby(['reviewerID', 'original_asin'])['asin'].apply(list).reset_index()
+            user_reviews = user_reviews.groupby(['reviewerID', 'original_asin'])[
+                'asin'].apply(list).reset_index()
             print("User Reviews Array Form")
             print(user_reviews)
 
-            user_reviews = user_reviews.groupby(['reviewerID'])['asin'].apply(list).reset_index()
+            user_reviews = user_reviews.groupby(
+                ['reviewerID'])['asin'].apply(list).reset_index()
             user_reviews.columns = ['user_id', 'reviewed_products']
 
             print("User Reviews")
@@ -120,7 +130,8 @@ class DataPreproccessor(object):
             with open(filepath, 'wb') as f:
                 pickle.dump(user_reviews, f, pickle.HIGHEST_PROTOCOL)
         return user_reviews
-         
+
+
 class Dataset(object):
     '''A dataset object for storing information about the user reviews.
     '''
@@ -140,20 +151,26 @@ class Dataset(object):
         
         training: Training subset of data
         '''
-        self.preprocessor = DataPreproccessor(raw_folder_path = AllOptions.DataOptions.raw_folder_path, cache_folder_path = AllOptions.DataOptions.cache_folder_path)
-        self.user_reviews = self.preprocessor.get_reviews()
+        self.preprocessor = DataPreproccessor(raw_folder_path=AllOptions.DataOptions.raw_folder_path,
+                                              cache_folder_path=AllOptions.DataOptions.cache_folder_path,
+                                              csv_file_name='Modified_Video_Games.csv')
+        self.user_reviews = self.preprocessor.get_user_reviews()
         self.log("First 10 Dataset Reviews: {}".format(self.user_reviews[:10]))
-        self.log("# Unique Users:", len(self.user_reviews['reviewerID'].unique().tolist()))
-        self.log("# Unique Items:", len(self.user_reviews['asin'].unique().tolist()))
+        self.log("# Unique Users:", len(
+            self.user_reviews['reviewerID'].unique().tolist()))
+        self.log("# Unique Items:", len(
+            self.user_reviews['asin'].unique().tolist()))
 
         # Only use a fraction of the data to speed up training
-        self.subset = self.user_reviews[0:int(len(self.user_reviews))].sample(frac=subset_percentage)
+        self.subset = self.user_reviews[0:int(
+            len(self.user_reviews))].sample(frac=subset_percentage)
         self.log("Subset type: {}".format(type(self.subset)))
         self.log("Reviews type: {}".format(type(self.user_reviews)))
-        
+
         # Only use training_percentage% of the data for training
-        self.training = self.subset[0:int(len(self.subset) * training_percentage)]
-        
+        self.training = self.subset[0:int(
+            len(self.subset) * training_percentage)]
+
         # Transform or normalize the ratings for Classification/Regression
         # self.training['overall'] = [1.0 if rating >= 3 else 0.0 for rating in self.training['overall']]
         # self.training['overall'] = [rating / 5.0 for rating in self.training['overall']]
@@ -161,20 +178,21 @@ class Dataset(object):
         # Assemble the training input and output based on the training dataset
         self.training_user_x = self.training['reviewerID'].tolist()
         self.training_item_x = self.training['asin'].tolist()
-        self.training_x = (self.training_user_x, self.training_item_x) # Pair
+        self.training_x = (self.training_user_x, self.training_item_x)  # Pair
         self.training_y = self.training['overall'].astype(float).tolist()
 
         # Only use (1-training_percentage)% of the data for testing
-        self.testing = self.subset[int(len(self.subset) * training_percentage):]
+        self.testing = self.subset[int(
+            len(self.subset) * training_percentage):]
 
         # Transform or normalize the ratings for Classification/Regression
         #self.testing['overall'] = [1.0 if rating >= 3 else 0.0 for rating in self.testing['overall']]
         #self.testing['overall'] = [rating / 5.0 for rating in self.testing['overall']]
 
         # Assemble the training input and output based on the training dataset
-        self.testing_user_x = self.testing['reviewerID'].tolist() 
+        self.testing_user_x = self.testing['reviewerID'].tolist()
         self.testing_item_x = self.testing['asin'].tolist()
-        self.testing_x = (self.testing_user_x, self.testing_item_x) # Pair
+        self.testing_x = (self.testing_user_x, self.testing_item_x)  # Pair
         self.testing_y = self.testing['overall'].astype(float).tolist()
 
     def get_training_and_testing(self):
@@ -199,6 +217,13 @@ class Dataset(object):
     #             return self.basket[index], self.num_baskets[index], self.user_id[index], self.reorder_basket[index], self.history_item[index]
     #         else:
     #             return self.reviewed_products[index], self.num_reviews[index], self.user_id[index]
-    
+
     # def __len__(self):
-    #     return len(self.user_id)      
+    #     return len(self.user_id)
+
+
+if __name__ == "__main__":
+    preprocessor = DataPreproccessor(raw_folder_path=AllOptions.DataOptions.raw_folder_path,
+                                     cache_folder_path=AllOptions.DataOptions.cache_folder_path,
+                                     csv_file_name='Modified_Video_Games_5')
+    user_reviews = preprocessor.get_user_reviews()
