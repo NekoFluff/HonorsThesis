@@ -113,32 +113,14 @@ class UserItemRecommender():
         # print("New feature tensor length after padding: ", len(self.train_data[0][0]), len(self.train_data[1][0]))
         # print(self.train_data[0])
 
-    def build_model(self):
+    def build_model(self, model = None):
         '''Build the model and store in 'self.model'
         '''
 
-        # Input layers
-        user_input_layer = keras.layers.Input(
-            name='user_input_layer', shape=[1])
-        item_input_layer = keras.layers.Input(
-            name='item_input_layer', shape=[1])
-
-        # Embedding
-        # Each user as self.num_item(s). self.num_item-dimension to self.model_options.embedding_output_size-dimension (Each user has their own representation)
-        user_embedding_layer = keras.layers.Embedding(
-            name="user_embedding", input_dim=self.num_users, output_dim=self.model_options.embedding_output_size)(user_input_layer)
-        # Each item as self.num_user(s). self.num_user-dimension to self.model_options.embedding_output_size-dimension (Each item has their own representation)
-        item_embedding_layer = keras.layers.Embedding(
-            name="item_embedding", input_dim=self.num_items, output_dim=self.model_options.embedding_output_size)(item_input_layer)
-
-        # Merge the layers with a dot product along the second axis (shape will be (None, 1, 1))
-        merged_layer = keras.layers.Dot(name='dot_product', normalize=False, axes=2)([
-            user_embedding_layer, item_embedding_layer])
-
-        # Reshape to be a single number (shape will be (None, 1))
-        output_layer = keras.layers.Reshape(target_shape=[1])(merged_layer)
-        self.model = keras.models.Model(
-            inputs=[user_input_layer, item_input_layer], outputs=output_layer)
+        if model is None:
+            self.model = self.model_options.generate_model(self)
+        else:
+            self.model = model
 
         # The resulting dimensions are: (batch, sequence, embedding).
         self.model.summary()
@@ -376,7 +358,7 @@ if __name__ == "__main__":
 
     user_item_recommender = UserItemRecommender(dataset=dataset)
 
-    create_new_model = False
+    create_new_model = True
     if create_new_model == True:
         # This is the equivalent of calling all of the below methods in the if statement
         # user_item_recommender('weights_020_0.73loss.hdf5')
