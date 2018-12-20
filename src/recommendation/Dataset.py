@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-    Prepare Input for DREAM 
-    Based on the Instartcart Dataset
-"""
+
 import os
 import pickle
 import numpy as np
@@ -11,17 +7,20 @@ from numpy import array
 from numpy import argmax
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
-
+from Logger import default_logger
 import pdb
 
-class DataRetriever(object):
-    def __init__(self, raw_data_dir, cache_dir):
-        self.raw_data_dir = raw_data_dir
-        self.cache_dir = cache_dir
+class DataPreproccessor(object):
+
+    def log(self, output):
+        default_logger.log("[DataPreproccessor]: " + output)
+        
+    def __init__(self):
+        default_logger.log_time()
+        self.log("Initialized preprocessor")
     
     def get_reviews(self):
-        """
-            Get rating information
+        """Get user reviews
         """
         ratings = pd.read_csv(self.raw_data_dir + 'Modified_Video_Games_5.csv')
 

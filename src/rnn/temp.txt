@@ -1,0 +1,1 @@
+Temporary file to have folder included in git commit.
