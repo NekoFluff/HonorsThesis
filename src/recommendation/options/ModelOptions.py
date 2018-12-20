@@ -8,6 +8,7 @@ class ModelOptions():
     metrics = ['mae']#['accuracy', 'mae']
     num_epochs = 100
     embedding_output_size = 32
+    training_batch_size = 512
 
     # How many samples to take out of the training set to use for validation during training
     num_validation_samples = 10000 
@@ -30,6 +31,9 @@ class ModelOptions():
     early_stopping_restore_best_weights = True
 
     def generate_model(self, recommendation_system):
+        '''This is the model passed to the UserItemRecommender.
+        Edit this model as you please to obtain better results.
+        '''
         # Input layers
         user_input_layer = keras.layers.Input(
             name='user_input_layer', shape=[1])
@@ -55,7 +59,9 @@ class ModelOptions():
             inputs=[user_input_layer, item_input_layer], outputs=output_layer)
 
     def generate_overwatch_model(self):
-        # Character (Embedding)
+        '''An NN to predict Overwatch rankings based on a player's stats for their most-played hero.
+        '''
+        # Most played character (Embedding) 
         # Avg Damage per game
         # Avg Death per game
         # Avg Accuracy

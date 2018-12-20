@@ -191,7 +191,7 @@ class UserItemRecommender():
         training_history = self.model.fit(self.partial_train_data,
                                             self.partial_train_labels,
                                             epochs=self.model_options.num_epochs,
-                                            batch_size=512,
+                                            batch_size=self.model_options.training_batch_size,
                                             validation_data=(
                                                 self.validation_data, self.validation_labels),
                                             verbose=1,
