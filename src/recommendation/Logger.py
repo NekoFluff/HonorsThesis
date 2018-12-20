@@ -1,6 +1,8 @@
 from datetime import datetime
 
 class Logger():
+    '''A universal logger. Use default_logger which is instantiated at the bottom of Logger.py
+    '''
     last_checkpoint = datetime.now()
 
     def get_time_difference_since_last_checkpoint(self, now_checkpoint, reset_checkpoint = False):

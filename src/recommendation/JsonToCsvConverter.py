@@ -10,15 +10,21 @@ from Logger import default_logger
 class JsonToCsvConverter():
     
   def log(self, output):
+    '''A simple logging function the pre-appends a [JsonToCsvConverter] tag to the beginning of any message passed in.
+    '''
     default_logger.log("[JsonToCsvConverter]: " + output)
 
   def update_paths(self, target_file_name):
+    '''Updates the from/to file paths based on the passed in 'target_file_name'.
+    '''
     self.target_json_path = "{}/{}.json".format(AllOptions.DataOptions.raw_folder_path, target_file_name)
     self.stripped_json_path = "{}/Modified_{}.json".format(AllOptions.DataOptions.raw_folder_path, target_file_name)
     self.target_csv_path = "{}/Modified_{}.csv".format(AllOptions.DataOptions.raw_folder_path, target_file_name)
     
 
   def create_csv(self, target_file_name):
+    '''Creates a csv based on a 'target_file_name' in json.
+    '''
     self.update_paths(target_file_name)
 
     # Log the time and some notificiations
