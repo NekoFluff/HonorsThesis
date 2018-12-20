@@ -51,6 +51,8 @@ class UserItemRecommender():
         self.log("Initialized UserItemRecommender")
 
     def __call__(self, checkpoint=None):
+        '''Builds/loads a model. Then evaluates it, saves it, and then generates graphs for it.
+        '''
         if checkpoint is None:
             self.build_model()
         else:
@@ -71,10 +73,8 @@ class UserItemRecommender():
     def examine_data(self):
         '''Explore Data
         '''
-        self.log("Training entries: {}, labels: {}".format(
-            len(self.train_data), len(self.train_labels)))
-        self.log("First training sample -> User: {} Item: {} Label: {}".format(
-            self.train_data[0][0], self.train_data[1][0]))
+        self.log("First 3 training entries: {}, labels: {}".format(
+            len(self.train_data[:3]), len(self.train_labels[:3])))
 
         # # Movie reviews may be of different length:
         # print("Reviews of different length: ", len(self.train_data[0]), len(self.train_data[1]))
@@ -114,7 +114,7 @@ class UserItemRecommender():
         # print(self.train_data[0])
 
     def build_model(self):
-        '''Build the model
+        '''Build the model and store in 'self.model'
         '''
 
         # Input layers
@@ -148,15 +148,16 @@ class UserItemRecommender():
         return self.model
 
     def compile_model(self):
+        '''Compiles the keras model stored in 'self.model'
+        '''
         self.model.compile(optimizer=self.model_options.optimizer,
                            loss=self.model_options.loss_function,
                            metrics=self.model_options.metrics)
         return self.model
 
     def create_validation_from_training(self, num_validation_samples):
-        ##############################################################
-        #  Create a validation set
-        ##############################################################
+        '''Create a validation set from the training set
+        '''
         train_user_data = self.train_data[0]
         train_item_data = self.train_data[1]
 
@@ -179,41 +180,44 @@ class UserItemRecommender():
         '''Train the model
         '''
 
-        if self.model is not None:
-            default_logger.log_time()
-            self.log("Beginning training...")
-
-            callback_list = []
-            
-            if self.model_options.checkpoint_enabled:
-                checkpoints_callback = keras.callbacks.ModelCheckpoint(self.data_options.checkpoints_folder_path + self.model_options.checkpoint_string,
-                                                                   monitor=self.model_options.checkpoint_monitor, 
-                                                                   verbose=self.model_options.checkpoint_verbose, 
-                                                                   save_weights_only=True, 
-                                                                   period=self.model_options.checkpoint_period)
-                callback_list.append(checkpoints_callback)
-            
-            if self.model_options.early_stopping_enabled:
-                early_stopping_callback = keras.callbacks.EarlyStopping(monitor=self.model_options.early_stopping_monitor,
-                                                                        min_delta=self.model_options.early_stopping_min_delta,
-                                                                        patience=self.model_options.early_stopping_patience,
-                                                                        verbose=self.model_options.early_stopping_verbose)
-                callback_list.append(early_stopping_callback)
-
-            training_history = self.model.fit(self.partial_train_data,
-                                              self.partial_train_labels,
-                                              epochs=self.model_options.num_epochs,
-                                              batch_size=512,
-                                              validation_data=(
-                                                  self.validation_data, self.validation_labels),
-                                              verbose=1,
-                                              callbacks=callback_list)
-
-            self.log("Finished training at:")
-            default_logger.log_time()
-            return training_history
-        else:
+        # Check if a model exists
+        if self.model is None:
             self.log("ERROR: Please create a model using build_model() first.")
+            return
+        
+        # A model exists. Begin training
+        default_logger.log_time()
+        self.log("Beginning training...")
+
+        callback_list = []
+        
+        if self.model_options.checkpoint_enabled:
+            checkpoints_callback = keras.callbacks.ModelCheckpoint(self.data_options.checkpoints_folder_path + self.model_options.checkpoint_string,
+                                                                monitor=self.model_options.checkpoint_monitor, 
+                                                                verbose=self.model_options.checkpoint_verbose, 
+                                                                save_weights_only=True, 
+                                                                period=self.model_options.checkpoint_period)
+            callback_list.append(checkpoints_callback)
+        
+        if self.model_options.early_stopping_enabled:
+            early_stopping_callback = keras.callbacks.EarlyStopping(monitor=self.model_options.early_stopping_monitor,
+                                                                    min_delta=self.model_options.early_stopping_min_delta,
+                                                                    patience=self.model_options.early_stopping_patience,
+                                                                    verbose=self.model_options.early_stopping_verbose)
+            callback_list.append(early_stopping_callback)
+
+        training_history = self.model.fit(self.partial_train_data,
+                                            self.partial_train_labels,
+                                            epochs=self.model_options.num_epochs,
+                                            batch_size=512,
+                                            validation_data=(
+                                                self.validation_data, self.validation_labels),
+                                            verbose=1,
+                                            callbacks=callback_list)
+
+        self.log("Finished training at:")
+        default_logger.log_time()
+        return training_history
 
     def evaluate_model(self):
         '''Evaluate the model after it has been trained.
@@ -221,22 +225,22 @@ class UserItemRecommender():
         if self.model is None:
             self.log(
                 "ERROR: The model hasn't been created yet. Call build_model() and then train()")
-        else:
-            self.log("Evaluating model...")
-            self.log("First Test Sample: ({}, {}) -> {}".format(
-                self.test_data[0][0], self.test_data[1][0], self.test_labels[0]))
+            return
+        self.log("Evaluating model...")
+        self.log("First Test Sample: ({}, {}) -> {}".format(
+            self.test_data[0][0], self.test_data[1][0], self.test_labels[0]))
 
-            # Evaluate the test data
-            results = self.model.evaluate(self.test_data, self.test_labels)
-            self.log("Results (Test Data)\nLoss: {}\nAccuracy: {}".format(
+        # Evaluate the test data
+        results = self.model.evaluate(self.test_data, self.test_labels)
+        self.log("Results (Test Data)\nLoss: {}\nAccuracy: {}".format(
+            results[0], results[1]))  # Approximately 87% accuracy
+
+        # Just for sanity's sake, let's check the validation data as well
+        if self.validation_data is not None and self.validation_labels is not None:
+            results = self.model.evaluate(
+                self.validation_data, self.validation_labels)
+            self.log("Results (Validation Data)\nLoss: {}\nAccuracy: {}".format(
                 results[0], results[1]))  # Approximately 87% accuracy
-
-            # Just for sanity's sake, let's check the validation data as well
-            if self.validation_data is not None and self.validation_labels is not None:
-                results = self.model.evaluate(
-                    self.validation_data, self.validation_labels)
-                self.log("Results (Validation Data)\nLoss: {}\nAccuracy: {}".format(
-                    results[0], results[1]))  # Approximately 87% accuracy
 
     def save_model(self, training_history):
         '''Save the model stored in the 'model' attribute.
@@ -273,6 +277,15 @@ class UserItemRecommender():
         self.compile_model()
         self.log("Loaded model with weights at {}".format(file_location))
 
+    def load_model(self, model_location):
+        '''Loads a model that was saved using save_model().
+        
+        [model_location example: /datefolder/file_name.h5]
+        [model_location example: /2018-12-20/13h-18m.....h5]
+        '''
+        file_location = self.data_options.models_folder_path + model_location
+        self.model = keras.models.load_model(file_location)
+        self.log("Loaded model stored at {}".format(file_location))
 
     def generate_graphs(self, training_history, graph_save_folder_path, show_graphs=False):
         '''Create a graph of accuracy and loss over time
@@ -281,48 +294,63 @@ class UserItemRecommender():
 
         if training_history is None:
             self.log("ERROR: Training history is None")
-        else:
-            if not os.path.exists(graph_save_folder_path):
-                os.makedirs(graph_save_folder_path)
+            return
 
-            history_dict = training_history.history
+        if not os.path.exists(graph_save_folder_path):
+            os.makedirs(graph_save_folder_path)
 
-            train_keys = list(
-                filter(lambda key: 'val_' not in key, history_dict.keys()))
-            for key in train_keys:
-                training_values = history_dict[key]
-                validation_values = history_dict['val_'+key]
+        history_dict = training_history.history
 
-                epochs = range(1, len(training_values) + 1)
+        train_keys = list(
+            filter(lambda key: 'val_' not in key, history_dict.keys()))
+        for key in train_keys:
+            training_values = history_dict[key]
+            validation_values = history_dict['val_'+key]
 
-                # "bo" is for "blue dot"
-                plt.plot(epochs, history_dict[key],
-                         'bo', label='Training ' + key)
-                # b is for "solid blue line"
-                plt.plot(
-                    epochs, history_dict['val_' + key], 'b', label='Validation ' + key)
-                plt.title('Training and validation ' + key)
-                plt.xlabel('Epochs')
-                plt.ylabel(key)
-                plt.legend()
-                plt.savefig('{}/{}.png'.format(graph_save_folder_path, key))
-                if show_graphs:
-                    plt.show()
-                plt.clf()
+            epochs = range(1, len(training_values) + 1)
 
-            # TODO: Move this to get_embeddings.py or delete completely
-            ##############################################################
-            #  Extract Embeddings
-            ##############################################################
-            # user_embedded=model.get_layer('user_embedding')
-            # user_weights=user_embedded.get_weights()[0]
-            # print(user_weights.shape)
+            # "bo" is for "blue dot"
+            plt.plot(epochs, history_dict[key],
+                        'bo', label='Training ' + key)
+            # b is for "solid blue line"
+            plt.plot(
+                epochs, history_dict['val_' + key], 'b', label='Validation ' + key)
+            plt.title('Training and validation ' + key)
+            plt.xlabel('Epochs')
+            plt.ylabel(key)
+            plt.legend()
+            plt.savefig('{}/{}.png'.format(graph_save_folder_path, key))
+            if show_graphs:
+                plt.show()
+            plt.clf()
 
-            # # normalize the embeddings
-            # user_weights=user_weights / \
-            #     np.linalg.norm(user_weights, axis=1).reshape((-1, 1))
-            # print(user_weights[0][:10])
-            # print(np.sum(np.square(user_weights[0])))
+    def get_embeddings(self):
+        '''Extracts the user and item embeddings from the model
+        '''
+        if self.model is None:
+            self.log("ERROR: model is None. Build and train a model using build_model() and train_model() or load a model using load_model_from_checkpoint()")
+            return
+        
+        user_embedded_layer = self.model.get_layer('user_embedding')
+        user_weights = user_embedded_layer.get_weights()[0]
+        self.log("User embedded layer weights shape: {}".format(user_weights.shape))
+
+        # Normalize the embeddings
+        user_weights = user_weights / np.linalg.norm(user_weights, axis=1).reshape((-1, 1))
+        self.log("First 10 normalized user weights: {}".format(user_weights[0][:10]))
+        self.log("Squared sum of normalized user weights (should equal 1): {}".format(np.sum(np.square(user_weights[0]))))
+
+        item_embedded_layer = self.model.get_layer('item_embedding')
+        item_weights = item_embedded_layer.get_weights()[0]
+        self.log("Item embedded layer weights shape: {}".format(user_weights.shape))
+
+        # Normalize the embeddings
+        item_weights = item_weights / np.linalg.norm(item_weights, axis=1).reshape((-1, 1))
+        self.log("First 10 normalized item weights: {}".format(item_weights[0][:10]))
+        self.log("Squared sum of normalized item weights (should equal 1): {}".format(np.sum(np.square(item_weights[0]))))
+        
+        return (user_weights, item_weights)
+
 
 
 if __name__ == "__main__":
@@ -333,22 +361,32 @@ if __name__ == "__main__":
 
     user_item_recommender = UserItemRecommender(dataset=dataset)
 
-    # This is the equivalent of calling all of the below methods
-    # user_item_recommender('weights_020_0.73loss.hdf5')
+    create_new_model = False
+    if create_new_model == True:
+        # This is the equivalent of calling all of the below methods in the if statement
+        # user_item_recommender('weights_020_0.73loss.hdf5')
 
-    # Build the model
-    user_item_recommender.build_model()
-    #user_item_recommender.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
-    training_history = user_item_recommender.train()
+        # Build and train the model
+        user_item_recommender.build_model()
+        training_history = user_item_recommender.train()
 
-    # Evaluate the trained model
-    user_item_recommender.evaluate_model()
+        # Evaluate the trained model
+        user_item_recommender.evaluate_model()
 
-    # Save the model
-    saved_file_name = user_item_recommender.save_model(training_history)
+        # Save the model
+        saved_file_name = user_item_recommender.save_model(training_history)
 
-    # Graph the results from training
-    user_item_recommender.generate_graphs(
-        training_history, AllOptions.DataOptions.graphs_folder_path + saved_file_name)
+        # Graph the results from training
+        user_item_recommender.generate_graphs(
+            training_history, AllOptions.DataOptions.graphs_folder_path + saved_file_name)
+
+    else:
+        print("Loading model...")
+        # Load model from a checkpoint
+        # user_item_recommender.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
+        user_item_recommender.load_model('/2018-12-20/13h-44m-53s_user_item_NN_model_[1.851val_loss]_[1.066val_mean_absolute_error]_[0.341loss]_[0.424mean_absolute_error].h5')
+        default_logger.log_time()
+
+    (user_embeddings, item_embeddings) = user_item_recommender.get_embeddings()
 
     default_logger.log_time()
