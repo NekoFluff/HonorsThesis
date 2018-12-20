@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from Dataset import Dataset
+import pandas as pd
 import os
 import numpy as np
 from datetime import datetime
@@ -331,6 +331,7 @@ class UserItemRecommender():
             self.log("ERROR: model is None. Build and train a model using build_model() and train_model() or load a model using load_model_from_checkpoint()")
             return
         
+        self.log("Retrieving user and item embeddings...")
         user_embedded_layer = self.model.get_layer('user_embedding')
         user_weights = user_embedded_layer.get_weights()[0]
         self.log("User embedded layer weights shape: {}".format(user_weights.shape))
@@ -351,6 +352,20 @@ class UserItemRecommender():
         
         return (user_weights, item_weights)
 
+    def recommend_items_for_user(self, user, num_items = 10):
+        # Get every user-item pair for a specific user
+        input_user_list = [user for i in range(self.num_items)]
+        input_item_list = [i for i in range(self.num_items)]
+        input_data = (input_user_list, input_item_list)
+        
+        predictions = self.model.predict(input_data, batch_size=512)
+        predictions_unwrapped = [val[0] for val in predictions]
+        dataframe = pd.DataFrame(data={'user': input_user_list, 'item': input_item_list, 'rating': predictions_unwrapped})
+        dataframe = dataframe.sort_values(by=['rating'], ascending=[False])
+
+        self.log("{} best items for user#{}:\n{}".format(num_items, user, dataframe[:num_items]))
+
+        return dataframe
 
 
 if __name__ == "__main__":
@@ -388,5 +403,6 @@ if __name__ == "__main__":
         default_logger.log_time()
 
     (user_embeddings, item_embeddings) = user_item_recommender.get_embeddings()
-
+    default_logger.log_time()
+    user_item_predictions = user_item_recommender.recommend_items_for_user(546);
     default_logger.log_time()
