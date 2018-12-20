@@ -32,16 +32,8 @@ class UserItemRecommender():
 
         # Set variables
         self.review_dataset = dataset
-        self.model_save_folder_path = data_options.models_folder_path
-        self.checkpoints_folder_path = data_options.checkpoints_folder_path
-        self.graphs_folder_path = data_options.graphs_folder_path
-
-        # Set variables from ModelOptions
-        self.optimizer = model_options.optimizer
-        self.loss_function = model_options.loss_function
-        self.metrics = model_options.metrics
-        self.num_epochs = model_options.num_epochs
-        self.embedding_output_size = model_options.embedding_output_size
+        self.data_options = data_options
+        self.model_options = model_options
 
         # self.num_items = dataset.get_num_items()
         # self.num_users = dataset.get_num_users()
@@ -74,7 +66,7 @@ class UserItemRecommender():
         # Graph the results from training
         self.generate_graphs(
             training_history, 
-            self.graphs_folder_path + saved_file_name)
+            self.data_options.graphs_folder_path + saved_file_name)
             
     def examine_data(self):
         '''Explore Data
@@ -132,12 +124,12 @@ class UserItemRecommender():
             name='item_input_layer', shape=[1])
 
         # Embedding
-        # Each user as self.num_item(s). self.num_item-dimension to self.embedding_output_size-dimension (Each user has their own representation)
+        # Each user as self.num_item(s). self.num_item-dimension to self.model_options.embedding_output_size-dimension (Each user has their own representation)
         user_embedding_layer = keras.layers.Embedding(
-            name="user_embedding", input_dim=self.num_users, output_dim=self.embedding_output_size)(user_input_layer)
-        # Each item as self.num_user(s). self.num_user-dimension to self.embedding_output_size-dimension (Each item has their own representation)
+            name="user_embedding", input_dim=self.num_users, output_dim=self.model_options.embedding_output_size)(user_input_layer)
+        # Each item as self.num_user(s). self.num_user-dimension to self.model_options.embedding_output_size-dimension (Each item has their own representation)
         item_embedding_layer = keras.layers.Embedding(
-            name="item_embedding", input_dim=self.num_items, output_dim=self.embedding_output_size)(item_input_layer)
+            name="item_embedding", input_dim=self.num_items, output_dim=self.model_options.embedding_output_size)(item_input_layer)
 
         # Merge the layers with a dot product along the second axis (shape will be (None, 1, 1))
         merged_layer = keras.layers.Dot(name='dot_product', normalize=False, axes=2)([
@@ -156,9 +148,9 @@ class UserItemRecommender():
         return self.model
 
     def compile_model(self):
-        self.model.compile(optimizer=self.optimizer,
-                           loss=self.loss_function,
-                           metrics=self.metrics)
+        self.model.compile(optimizer=self.model_options.optimizer,
+                           loss=self.model_options.loss_function,
+                           metrics=self.model_options.metrics)
         return self.model
 
     def create_validation_from_training(self, num_validation_samples):
@@ -191,15 +183,31 @@ class UserItemRecommender():
             default_logger.log_time()
             self.log("Beginning training...")
 
-            checkpoints_callback = keras.callbacks.ModelCheckpoint(self.checkpoints_folder_path + '/weights_{epoch:03d}_{val_loss:.2f}loss.hdf5', monitor='val_loss', verbose=1, save_weights_only=True, period=10)
+            callback_list = []
+            
+            if self.model_options.checkpoint_enabled:
+                checkpoints_callback = keras.callbacks.ModelCheckpoint(self.data_options.checkpoints_folder_path + self.model_options.checkpoint_string,
+                                                                   monitor=self.model_options.checkpoint_monitor, 
+                                                                   verbose=self.model_options.checkpoint_verbose, 
+                                                                   save_weights_only=True, 
+                                                                   period=self.model_options.checkpoint_period)
+                callback_list.append(checkpoints_callback)
+            
+            if self.model_options.early_stopping_enabled:
+                early_stopping_callback = keras.callbacks.EarlyStopping(monitor=self.model_options.early_stopping_monitor,
+                                                                        min_delta=self.model_options.early_stopping_min_delta,
+                                                                        patience=self.model_options.early_stopping_patience,
+                                                                        verbose=self.model_options.early_stopping_verbose)
+                callback_list.append(early_stopping_callback)
+
             training_history = self.model.fit(self.partial_train_data,
                                               self.partial_train_labels,
-                                              epochs=self.num_epochs,
+                                              epochs=self.model_options.num_epochs,
                                               batch_size=512,
                                               validation_data=(
                                                   self.validation_data, self.validation_labels),
                                               verbose=1,
-                                              callbacks=[checkpoints_callback])
+                                              callbacks=callback_list)
 
             self.log("Finished training at:")
             default_logger.log_time()
@@ -214,6 +222,7 @@ class UserItemRecommender():
             self.log(
                 "ERROR: The model hasn't been created yet. Call build_model() and then train()")
         else:
+            self.log("Evaluating model...")
             self.log("First Test Sample: ({}, {}) -> {}".format(
                 self.test_data[0][0], self.test_data[1][0], self.test_labels[0]))
 
@@ -233,22 +242,23 @@ class UserItemRecommender():
         '''Save the model stored in the 'model' attribute.
         '''
 
+        self.log("Saving model...")
         history_dict = training_history.history
 
         # acc, val_acc, loss, val_loss
-        results = ['[{:.3f}]{}'.format(history_dict[key][0], key)
+        results = ['[{:.3f}{}]'.format(history_dict[key][-1], key)
                    for key in history_dict.keys()]
         results_joined = '_'.join(results)
 
         now = datetime.now()
         today_folder = '/{:%Y-%m-%d}/'.format(now)
-        if not os.path.exists(self.model_save_folder_path + today_folder):
-            os.makedirs(self.model_save_folder_path + today_folder)
+        if not os.path.exists(self.data_options.models_folder_path + today_folder):
+            os.makedirs(self.data_options.models_folder_path + today_folder)
 
         hour_min_second = '{:%Hh-%Mm-%Ss}'.format(now)
         file_name = '{}_user_item_NN_model_{}'.format(
             hour_min_second, results_joined)
-        path = self.model_save_folder_path + today_folder + file_name + '.h5'
+        path = self.data_options.models_folder_path + today_folder + file_name + '.h5'
 
         self.model.save(path)
         return today_folder + file_name
@@ -256,7 +266,8 @@ class UserItemRecommender():
     def load_model_from_checkpoint(self, model_weights_location):
         '''Loads a model with the weights stored in the 'model_weights_location' file
         '''
-        file_location = self.checkpoints_folder_path + model_weights_location
+
+        file_location = self.data_options.checkpoints_folder_path + model_weights_location
         self.build_model()
         self.model.load_weights(file_location)
         self.compile_model()
@@ -323,11 +334,11 @@ if __name__ == "__main__":
     user_item_recommender = UserItemRecommender(dataset=dataset)
 
     # This is the equivalent of calling all of the below methods
-    # user_item_recommender()
+    # user_item_recommender('weights_020_0.73loss.hdf5')
 
     # Build the model
-    #user_item_recommender.build_model()
-    user_item_recommender.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
+    user_item_recommender.build_model()
+    #user_item_recommender.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
     training_history = user_item_recommender.train()
 
     # Evaluate the trained model
@@ -339,3 +350,5 @@ if __name__ == "__main__":
     # Graph the results from training
     user_item_recommender.generate_graphs(
         training_history, AllOptions.DataOptions.graphs_folder_path + saved_file_name)
+
+    default_logger.log_time()
