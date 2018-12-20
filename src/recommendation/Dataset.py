@@ -15,7 +15,7 @@ import pdb
 class DataPreproccessor(object):
 
     def log(self, output):
-        '''A simple logging function the pre-appends a [DataPreprocessor] tag to the beginning of any message passed in.
+        '''A simple logging function that pre-appends a [DataPreprocessor] tag to the beginning of any message passed in.
         '''
         default_logger.log("[DataPreproccessor]: " + output)
 
@@ -38,7 +38,7 @@ class DataPreproccessor(object):
                     user_reviews_pkl_file_path))
                 user_reviews = pickle.load(user_reviews_file)
         else:
-            # Log the time of this function call
+            # Log the time of this function call (reset checkpoint too)
             default_logger.set_checkpoint()
             default_logger.log_time()
             user_reviews = pd.read_csv(
@@ -136,12 +136,12 @@ class Dataset(object):
     '''A dataset object for storing information about the user reviews.
     '''
 
-    def log(output):
-        '''A simple logging function the pre-appends a [Dataset] tag to the beginning of any message passed in.
+    def log(self, output):
+        '''A simple logging function that pre-appends a [Dataset] tag to the beginning of any message passed in.
         '''
         default_logger.log("[Dataset]: " + output)
 
-    def __init__(self, subset_percentage=1.0, training_percentage=0.8):
+    def __init__(self, dataPreproccessor, subset_percentage=1.0, training_percentage=0.8):
         '''Initalizes the dataset. 
 
         subset_fraction: A value between 0.0 and 1.0. Determines how much of the review data to use.
@@ -151,15 +151,13 @@ class Dataset(object):
         
         training: Training subset of data
         '''
-        self.preprocessor = DataPreproccessor(raw_folder_path=AllOptions.DataOptions.raw_folder_path,
-                                              cache_folder_path=AllOptions.DataOptions.cache_folder_path,
-                                              csv_file_name='Modified_Video_Games.csv')
+        self.preprocessor = dataPreproccessor
         self.user_reviews = self.preprocessor.get_user_reviews()
         self.log("First 10 Dataset Reviews: {}".format(self.user_reviews[:10]))
-        self.log("# Unique Users:", len(
-            self.user_reviews['reviewerID'].unique().tolist()))
-        self.log("# Unique Items:", len(
-            self.user_reviews['asin'].unique().tolist()))
+        self.log("# Unique Users: {}".format(len(
+            self.user_reviews['reviewerID'].unique().tolist())))
+        self.log("# Unique Items: {}".format(len(
+            self.user_reviews['asin'].unique().tolist())))
 
         # Only use a fraction of the data to speed up training
         self.subset = self.user_reviews[0:int(

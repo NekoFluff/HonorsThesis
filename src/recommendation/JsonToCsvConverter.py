@@ -10,7 +10,7 @@ from Logger import default_logger
 class JsonToCsvConverter():
 
   def log(self, output):
-    '''A simple logging function the pre-appends a [JsonToCsvConverter] tag to the beginning of any message passed in.
+    '''A simple logging function that pre-appends a [JsonToCsvConverter] tag to the beginning of any message passed in.
     '''
     default_logger.log("[JsonToCsvConverter]: " + output)
 
