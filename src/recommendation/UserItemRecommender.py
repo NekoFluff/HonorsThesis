@@ -8,7 +8,8 @@ from datetime import datetime
 from Dataset import DataPreproccessor, Dataset
 from Logger import default_logger
 from options.AllOptions import AllOptions
-
+from options.ModelOptions import ModelOptions
+from options.DataOptions import DataOptions
 
 class UserItemRecommender():
     '''TODO: Add comment here
@@ -23,7 +24,7 @@ class UserItemRecommender():
         '''
         default_logger.log("[UserItemRecommender]: " + output)
 
-    def __init__(self, dataset, model_save_folder_path, num_validation_samples = 10000, optimizer='Adam', loss_function='mse', metrics=['accuracy', 'mae'], num_epochs=100, embedding_output_size=16):
+    def __init__(self, dataset, model_options=AllOptions.ModelOptions, data_options=AllOptions.DataOptions):
         default_logger.log_time()
 
         # Make sure you are running an adequate version of Tensorflow
@@ -31,12 +32,17 @@ class UserItemRecommender():
 
         # Set variables
         self.review_dataset = dataset
-        self.model_save_folder_path = model_save_folder_path
-        self.optimizer = optimizer
-        self.loss_function = loss_function
-        self.metrics = metrics
-        self.num_epochs = num_epochs
-        self.embedding_output_size = embedding_output_size
+        self.model_save_folder_path = data_options.models_folder_path
+        self.checkpoints_folder_path = data_options.checkpoints_folder_path
+        self.graphs_folder_path = data_options.graphs_folder_path
+
+        # Set variables from ModelOptions
+        self.optimizer = model_options.optimizer
+        self.loss_function = model_options.loss_function
+        self.metrics = model_options.metrics
+        self.num_epochs = model_options.num_epochs
+        self.embedding_output_size = model_options.embedding_output_size
+
         # self.num_items = dataset.get_num_items()
         # self.num_users = dataset.get_num_users()
         self.num_users = 24303
@@ -46,29 +52,30 @@ class UserItemRecommender():
         # Get the data
         (self.train_data, self.train_labels), (self.test_data,
                                                self.test_labels) = self.review_dataset.get_training_and_testing()
-        self.create_validation_from_training(num_validation_samples)
+        self.log("Retrieved training and testing data from the dataset")
+        
+        self.create_validation_from_training(model_options.num_validation_samples)
 
         self.log("Initialized UserItemRecommender")
 
-    def __call__(self):
-        self.log("Retrieved training and testing data from the dataset")
-
-        # Build the model
-        self.build_model()
-
-        # Train using the data
+    def __call__(self, checkpoint=None):
+        if checkpoint is None:
+            self.build_model()
+        else:
+            self.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
         training_history = self.train()
 
         # Evaluate the trained model
         self.evaluate_model()
 
-        # Graph the results from training
-        self.generate_graphs(training_history)
-
         # Save the model
-        self.save_model(training_history)
-        
+        saved_file_name = self.save_model(training_history)
 
+        # Graph the results from training
+        self.generate_graphs(
+            training_history, 
+            self.graphs_folder_path + saved_file_name)
+            
     def examine_data(self):
         '''Explore Data
         '''
@@ -143,11 +150,16 @@ class UserItemRecommender():
 
         # The resulting dimensions are: (batch, sequence, embedding).
         self.model.summary()
+        self.compile_model()
+        self.log("Built and compiled the model")
 
+        return self.model
+
+    def compile_model(self):
         self.model.compile(optimizer=self.optimizer,
                            loss=self.loss_function,
                            metrics=self.metrics)
-        self.log("Built and compiled the model")
+        return self.model
 
     def create_validation_from_training(self, num_validation_samples):
         ##############################################################
@@ -176,19 +188,18 @@ class UserItemRecommender():
         '''
 
         if self.model is not None:
-            # print("Partial X Train")
-            # print(len(self.partial_train_data[0]), len(self.partial_train_data[1]))
-            # print(len(self.partial_train_labels))
             default_logger.log_time()
             self.log("Beginning training...")
 
+            checkpoints_callback = keras.callbacks.ModelCheckpoint(self.checkpoints_folder_path + '/weights_{epoch:03d}_{val_loss:.2f}loss.hdf5', monitor='val_loss', verbose=1, save_weights_only=True, period=10)
             training_history = self.model.fit(self.partial_train_data,
-                                                   self.partial_train_labels,
-                                                   epochs=self.num_epochs,
-                                                   batch_size=512,
-                                                   validation_data=(
-                                                       self.validation_data, self.validation_labels),
-                                                   verbose=1)
+                                              self.partial_train_labels,
+                                              epochs=self.num_epochs,
+                                              batch_size=512,
+                                              validation_data=(
+                                                  self.validation_data, self.validation_labels),
+                                              verbose=1,
+                                              callbacks=[checkpoints_callback])
 
             self.log("Finished training at:")
             default_logger.log_time()
@@ -200,7 +211,8 @@ class UserItemRecommender():
         '''Evaluate the model after it has been trained.
         '''
         if self.model is None:
-            self.log("ERROR: The model hasn't been created yet. Call build_model() and then train()")
+            self.log(
+                "ERROR: The model hasn't been created yet. Call build_model() and then train()")
         else:
             self.log("First Test Sample: ({}, {}) -> {}".format(
                 self.test_data[0][0], self.test_data[1][0], self.test_labels[0]))
@@ -218,7 +230,7 @@ class UserItemRecommender():
                     results[0], results[1]))  # Approximately 87% accuracy
 
     def save_model(self, training_history):
-        '''Save the model
+        '''Save the model stored in the 'model' attribute.
         '''
 
         history_dict = training_history.history
@@ -235,11 +247,21 @@ class UserItemRecommender():
 
         hour_min_second = '{:%Hh-%Mm-%Ss}'.format(now)
         file_name = '{}_user_item_NN_model_{}'.format(
-                hour_min_second, results_joined)
+            hour_min_second, results_joined)
         path = self.model_save_folder_path + today_folder + file_name + '.h5'
-            
+
         self.model.save(path)
         return today_folder + file_name
+    
+    def load_model_from_checkpoint(self, model_weights_location):
+        '''Loads a model with the weights stored in the 'model_weights_location' file
+        '''
+        file_location = self.checkpoints_folder_path + model_weights_location
+        self.build_model()
+        self.model.load_weights(file_location)
+        self.compile_model()
+        self.log("Loaded model with weights at {}".format(file_location))
+
 
     def generate_graphs(self, training_history, graph_save_folder_path, show_graphs=False):
         '''Create a graph of accuracy and loss over time
@@ -254,17 +276,20 @@ class UserItemRecommender():
 
             history_dict = training_history.history
 
-            train_keys = list(filter(lambda key: 'val_' not in key, history_dict.keys()))
+            train_keys = list(
+                filter(lambda key: 'val_' not in key, history_dict.keys()))
             for key in train_keys:
                 training_values = history_dict[key]
                 validation_values = history_dict['val_'+key]
-                
+
                 epochs = range(1, len(training_values) + 1)
 
                 # "bo" is for "blue dot"
-                plt.plot(epochs, history_dict[key], 'bo', label='Training ' + key)
+                plt.plot(epochs, history_dict[key],
+                         'bo', label='Training ' + key)
                 # b is for "solid blue line"
-                plt.plot(epochs, history_dict['val_' + key], 'b', label='Validation ' + key)
+                plt.plot(
+                    epochs, history_dict['val_' + key], 'b', label='Validation ' + key)
                 plt.title('Training and validation ' + key)
                 plt.xlabel('Epochs')
                 plt.ylabel(key)
@@ -295,14 +320,14 @@ if __name__ == "__main__":
                                      csv_file_name='Modified_Video_Games_5')
     dataset = Dataset(preprocessor)
 
-    user_item_recommender = UserItemRecommender(
-        dataset=dataset, model_save_folder_path=AllOptions.DataOptions.models_folder_path, num_epochs=100, num_validation_samples=10000)
-   
+    user_item_recommender = UserItemRecommender(dataset=dataset)
+
     # This is the equivalent of calling all of the below methods
     # user_item_recommender()
 
     # Build the model
-    user_item_recommender.build_model()
+    #user_item_recommender.build_model()
+    user_item_recommender.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
     training_history = user_item_recommender.train()
 
     # Evaluate the trained model
@@ -312,8 +337,5 @@ if __name__ == "__main__":
     saved_file_name = user_item_recommender.save_model(training_history)
 
     # Graph the results from training
-    user_item_recommender.generate_graphs(training_history, AllOptions.DataOptions.graphs_folder_path + saved_file_name)
-
-    
-
-    
+    user_item_recommender.generate_graphs(
+        training_history, AllOptions.DataOptions.graphs_folder_path + saved_file_name)
