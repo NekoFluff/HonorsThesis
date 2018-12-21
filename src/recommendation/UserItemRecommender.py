@@ -13,6 +13,7 @@ from options.DataOptions import DataOptions
 
 from NN import NN
 
+
 class UserItemRecommender(NN):
     '''TODO: Add comment here
     '''
@@ -43,13 +44,13 @@ class UserItemRecommender(NN):
         '''Builds/loads a model. Then evaluates it, saves it, and then generates graphs for it.
         '''
         NN.__call__(self, checkpoint)
-            
+
     def examine_data(self):
         '''Explore Data
         '''
         NN.examine_data(self)
 
-    def build_model(self, model = None):
+    def build_model(self, model=None):
         '''Build the model and store in 'self.model'
         Edit this model as you please to obtain better results.
         '''
@@ -113,8 +114,7 @@ class UserItemRecommender(NN):
 
         self.log("Evaluating model...")
         self.log("First Test Sample: ({}, {}) -> Expected: {} Guessed: {}".format(
-        self.test_data[0][0], self.test_data[1][0], self.test_labels[0], self.model.predict(([self.test_data[0][0]], [self.test_data[1][0]]))[0][0]))
-
+            self.test_data[0][0], self.test_data[1][0], self.test_labels[0], self.model.predict(([self.test_data[0][0]], [self.test_data[1][0]]))[0][0]))
 
     def save_model(self, training_history):
         '''Save the model stored in the 'model' attribute.
@@ -122,12 +122,11 @@ class UserItemRecommender(NN):
         '''
 
         return NN.save_model(self, training_history)
-    
+
     def load_model_from_checkpoint(self, model_weights_location):
         '''Loads a model with the weights stored in the 'model_weights_location' file
         '''
         NN.load_model_from_checkpoint(self, model_weights_location)
-        
 
     def load_model(self, model_location):
         '''Loads a model that was saved using save_model().
@@ -137,11 +136,11 @@ class UserItemRecommender(NN):
         '''
         NN.load_model(self, model_location)
 
-
     def generate_graphs(self, training_history, graph_save_folder_path, show_graphs=False):
         '''Create a graph of accuracy and loss over time
         '''
-        NN.generate_graphs(self, training_history, graph_save_folder_path, show_graphs)
+        NN.generate_graphs(self, training_history,
+                           graph_save_folder_path, show_graphs)
 
     def get_embeddings(self):
         '''Extracts the user and item embeddings from the model
@@ -149,40 +148,50 @@ class UserItemRecommender(NN):
         if self.model is None:
             self.log("ERROR: model is None. Build and train a model using build_model() and train_model() or load a model using load_model_from_checkpoint()")
             return
-        
+
         self.log("Retrieving user and item embeddings...")
         user_embedded_layer = self.model.get_layer('user_embedding')
         user_weights = user_embedded_layer.get_weights()[0]
-        self.log("User embedded layer weights shape: {}".format(user_weights.shape))
+        self.log("User embedded layer weights shape: {}".format(
+            user_weights.shape))
 
         # Normalize the embeddings
-        user_weights = user_weights / np.linalg.norm(user_weights, axis=1).reshape((-1, 1))
-        self.log("First 10 normalized user weights: {}".format(user_weights[0][:10]))
-        self.log("Squared sum of normalized user weights (should equal 1): {}".format(np.sum(np.square(user_weights[0]))))
+        user_weights = user_weights / \
+            np.linalg.norm(user_weights, axis=1).reshape((-1, 1))
+        self.log("First 10 normalized user weights: {}".format(
+            user_weights[0][:10]))
+        self.log("Squared sum of normalized user weights (should equal 1): {}".format(
+            np.sum(np.square(user_weights[0]))))
 
         item_embedded_layer = self.model.get_layer('item_embedding')
         item_weights = item_embedded_layer.get_weights()[0]
-        self.log("Item embedded layer weights shape: {}".format(user_weights.shape))
+        self.log("Item embedded layer weights shape: {}".format(
+            user_weights.shape))
 
         # Normalize the embeddings
-        item_weights = item_weights / np.linalg.norm(item_weights, axis=1).reshape((-1, 1))
-        self.log("First 10 normalized item weights: {}".format(item_weights[0][:10]))
-        self.log("Squared sum of normalized item weights (should equal 1): {}".format(np.sum(np.square(item_weights[0]))))
-        
+        item_weights = item_weights / \
+            np.linalg.norm(item_weights, axis=1).reshape((-1, 1))
+        self.log("First 10 normalized item weights: {}".format(
+            item_weights[0][:10]))
+        self.log("Squared sum of normalized item weights (should equal 1): {}".format(
+            np.sum(np.square(item_weights[0]))))
+
         return (user_weights, item_weights)
 
-    def recommend_items_for_user(self, user, num_items = 10):
+    def recommend_items_for_user(self, user, num_items=10):
         # Get every user-item pair for a specific user
         input_user_list = [user for i in range(self.num_items)]
         input_item_list = [i for i in range(self.num_items)]
         input_data = (input_user_list, input_item_list)
-        
+
         predictions = self.model.predict(input_data, batch_size=512)
         predictions_unwrapped = [val[0] for val in predictions]
-        dataframe = pd.DataFrame(data={'user': input_user_list, 'item': input_item_list, 'rating': predictions_unwrapped})
+        dataframe = pd.DataFrame(
+            data={'user': input_user_list, 'item': input_item_list, 'rating': predictions_unwrapped})
         dataframe = dataframe.sort_values(by=['rating'], ascending=[False])
 
-        self.log("{} best items for user#{}:\n{}".format(num_items, user, dataframe[:num_items]))
+        self.log("{} best items for user#{}:\n{}".format(
+            num_items, user, dataframe[:num_items]))
 
         return dataframe
 
@@ -218,11 +227,12 @@ if __name__ == "__main__":
         print("Loading model...")
         # Load model from a checkpoint
         # user_item_recommender.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
-        user_item_recommender.load_model('/2018-12-20/13h-44m-53s_user_item_NN_model_[1.851val_loss]_[1.066val_mean_absolute_error]_[0.341loss]_[0.424mean_absolute_error].h5')
+        user_item_recommender.load_model(
+            '/2018-12-20/13h-44m-53s_user_item_NN_model_[1.851val_loss]_[1.066val_mean_absolute_error]_[0.341loss]_[0.424mean_absolute_error].h5')
         user_item_recommender.evaluate_model()
         default_logger.log_time()
 
     (user_embeddings, item_embeddings) = user_item_recommender.get_embeddings()
     default_logger.log_time()
-    user_item_predictions = user_item_recommender.recommend_items_for_user(546);
+    user_item_predictions = user_item_recommender.recommend_items_for_user(546)
     default_logger.log_time()

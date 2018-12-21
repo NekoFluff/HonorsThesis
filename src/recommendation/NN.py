@@ -11,6 +11,7 @@ from options.AllOptions import AllOptions
 from options.ModelOptions import ModelOptions
 from options.DataOptions import DataOptions
 
+
 class NN():
     '''TODO: Add comment here
     '''
@@ -40,8 +41,9 @@ class NN():
         (self.train_data, self.train_labels), (self.test_data,
                                                self.test_labels) = self.review_dataset.get_training_and_testing()
         self.log("Retrieved training and testing data from the dataset")
-        
-        self.create_validation_from_training(model_options.num_validation_samples)
+
+        self.create_validation_from_training(
+            model_options.num_validation_samples)
 
         self.log("Initialized NN")
 
@@ -62,21 +64,21 @@ class NN():
 
         # Graph the results from training
         self.generate_graphs(
-            training_history, 
+            training_history,
             self.data_options.graphs_folder_path + saved_file_name)
-            
+
     def examine_data(self):
         '''Explore Data
         '''
         self.log("First 3 training entries: {}, labels: {}".format(
             len(self.train_data[:3]), len(self.train_labels[:3])))
 
-        
     def build_model(self, model=None):
         '''Build the model and store in 'self.model'
         '''
 
-        self.log("Implement the build_model() method in a subclass. Store in 'self.model' and return the model")
+        self.log(
+            "Implement the build_model() method in a subclass. Store in 'self.model' and return the model")
         return self.model
 
     def compile_model(self):
@@ -91,8 +93,10 @@ class NN():
     def create_validation_from_training(self, num_validation_samples):
         '''Create a validation set from the training set
         '''
-        self.validation_data = [data[:num_validation_samples] for data in self.train_data]
-        self.partial_train_data = [data[num_validation_samples:] for data in self.train_data]
+        self.validation_data = [data[:num_validation_samples]
+                                for data in self.train_data]
+        self.partial_train_data = [
+            data[num_validation_samples:] for data in self.train_data]
 
         self.validation_labels = self.train_labels[:num_validation_samples]
         self.partial_train_labels = self.train_labels[num_validation_samples:]
@@ -106,21 +110,21 @@ class NN():
         if self.model is None:
             self.log("ERROR: Please create a model using build_model() first.")
             return
-        
+
         # A model exists. Begin training
         default_logger.log_time()
         self.log("Beginning training...")
 
         callback_list = []
-        
+
         if self.model_options.checkpoint_enabled:
             checkpoints_callback = keras.callbacks.ModelCheckpoint(self.data_options.checkpoints_folder_path + self.model_options.checkpoint_string,
-                                                                monitor=self.model_options.checkpoint_monitor, 
-                                                                verbose=self.model_options.checkpoint_verbose, 
-                                                                save_weights_only=True, 
-                                                                period=self.model_options.checkpoint_period)
+                                                                   monitor=self.model_options.checkpoint_monitor,
+                                                                   verbose=self.model_options.checkpoint_verbose,
+                                                                   save_weights_only=True,
+                                                                   period=self.model_options.checkpoint_period)
             callback_list.append(checkpoints_callback)
-        
+
         if self.model_options.early_stopping_enabled:
             early_stopping_callback = keras.callbacks.EarlyStopping(monitor=self.model_options.early_stopping_monitor,
                                                                     min_delta=self.model_options.early_stopping_min_delta,
@@ -129,13 +133,13 @@ class NN():
             callback_list.append(early_stopping_callback)
 
         training_history = self.model.fit(self.partial_train_data,
-                                            self.partial_train_labels,
-                                            epochs=self.model_options.num_epochs,
-                                            batch_size=self.model_options.training_batch_size,
-                                            validation_data=(
-                                                self.validation_data, self.validation_labels),
-                                            verbose=1,
-                                            callbacks=callback_list)
+                                          self.partial_train_labels,
+                                          epochs=self.model_options.num_epochs,
+                                          batch_size=self.model_options.training_batch_size,
+                                          validation_data=(
+                                              self.validation_data, self.validation_labels),
+                                          verbose=1,
+                                          callbacks=callback_list)
 
         self.log("Finished training at:")
         default_logger.log_time()
@@ -153,14 +157,14 @@ class NN():
         # Evaluate the test data
         results = self.model.evaluate(self.test_data, self.test_labels)
         self.log("Results (Test Data)\nLoss: {}\nAccuracy: {}".format(
-            results[0], results[1])) 
+            results[0], results[1]))
 
         # Just for sanity's sake, let's check the validation data as well
         if self.validation_data is not None and self.validation_labels is not None:
             results = self.model.evaluate(
                 self.validation_data, self.validation_labels)
             self.log("Results (Validation Data)\nLoss: {}\nAccuracy: {}".format(
-                results[0], results[1]))  
+                results[0], results[1]))
 
     def save_model(self, training_history):
         '''Save the model stored in the 'model' attribute.
@@ -187,7 +191,7 @@ class NN():
 
         self.model.save(path)
         return today_folder + file_name
-    
+
     def load_model_from_checkpoint(self, model_weights_location):
         '''Loads a model with the weights stored in the 'model_weights_location' file
         '''
@@ -208,7 +212,6 @@ class NN():
         self.model = keras.models.load_model(file_location)
         self.compile_model()
         self.log("Loaded model stored at {}".format(file_location))
-
 
     def generate_graphs(self, training_history, graph_save_folder_path, show_graphs=False):
         '''Create a graph of accuracy and loss over time
@@ -234,7 +237,7 @@ class NN():
 
             # "bo" is for "blue dot"
             plt.plot(epochs, history_dict[key],
-                        'bo', label='Training ' + key)
+                     'bo', label='Training ' + key)
             # b is for "solid blue line"
             plt.plot(
                 epochs, history_dict['val_' + key], 'b', label='Validation ' + key)
