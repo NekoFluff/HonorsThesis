@@ -30,34 +30,6 @@ class ModelOptions():
     # Not included in the current version of tensorflow
     early_stopping_restore_best_weights = True
 
-    def generate_model(self, recommendation_system):
-        '''This is the model passed to the UserItemRecommender.
-        Edit this model as you please to obtain better results.
-        '''
-        # Input layers
-        user_input_layer = keras.layers.Input(
-            name='user_input_layer', shape=[1])
-        item_input_layer = keras.layers.Input(
-            name='item_input_layer', shape=[1])
-
-        # Embedding
-        # Each user as self.num_item(s). self.num_item-dimension to self.model_options.embedding_output_size-dimension (Each user has their own representation)
-        user_embedding_layer = keras.layers.Embedding(
-            name="user_embedding", input_dim=recommendation_system.num_users, output_dim=self.embedding_output_size)(user_input_layer)
-        # Each item as self.num_user(s). self.num_user-dimension to self.model_options.embedding_output_size-dimension (Each item has their own representation)
-        item_embedding_layer = keras.layers.Embedding(
-            name="item_embedding", input_dim=recommendation_system.num_items, output_dim=self.embedding_output_size)(item_input_layer)
-
-        # Merge the layers with a dot product along the second axis (shape will be (None, 1, 1))
-        merged_layer = keras.layers.Dot(name='dot_product', normalize=False, axes=2)([
-            user_embedding_layer, item_embedding_layer])
-
-        # Reshape to be a single number (shape will be (None, 1))
-        output_layer = keras.layers.Reshape(target_shape=[1])(merged_layer)
-
-        return keras.models.Model(
-            inputs=[user_input_layer, item_input_layer], outputs=output_layer)
-
     def generate_overwatch_model(self):
         '''An NN to predict Overwatch rankings based on a player's stats for their most-played hero.
         '''

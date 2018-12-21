@@ -35,7 +35,6 @@ class DataPreproccessor(object):
         '''
         user_reviews = None
 
-        
         if reconstruct == False and os.path.exists(self.user_reviews_pkl_file_path):
             with open(self.user_reviews_pkl_file_path, 'rb') as user_reviews_file:
                 self.log("Loaded stored user reviews data at: {}".format(
