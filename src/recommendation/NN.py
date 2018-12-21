@@ -229,11 +229,9 @@ class NN():
 
         train_keys = list(
             filter(lambda key: 'val_' not in key, history_dict.keys()))
+            
         for key in train_keys:
-            training_values = history_dict[key]
-            validation_values = history_dict['val_'+key]
-
-            epochs = range(1, len(training_values) + 1)
+            epochs = range(1, len(history_dict[key]) + 1)
 
             # "bo" is for "blue dot"
             plt.plot(epochs, history_dict[key],
