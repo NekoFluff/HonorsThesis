@@ -26,17 +26,23 @@ class DataPreproccessor(object):
         self.target_csv_file = csv_file_name
         self.log("Initialized preprocessor")
 
-    def get_user_reviews(self):
+        self.user_reviews_pkl_file_path = self.cache_folder_path + self.target_csv_file + '.pkl'
+        self.product_integer_encoding_file_path = self.cache_folder_path + self.target_csv_file  + '_item_integer_encoding.pkl'
+        self.user_integer_encoding_file_path = self.cache_folder_path + self.target_csv_file  + '_user_integer_encoding.pkl'
+
+    def get_user_reviews(self, reconstruct=False):
         '''Get user reviews
         '''
         user_reviews = None
 
-        user_reviews_pkl_file_path = self.cache_folder_path + self.target_csv_file + '.pkl'
-        if os.path.exists(user_reviews_pkl_file_path):
-            with open(user_reviews_pkl_file_path, 'rb') as user_reviews_file:
+        
+        if reconstruct == False and os.path.exists(self.user_reviews_pkl_file_path):
+            with open(self.user_reviews_pkl_file_path, 'rb') as user_reviews_file:
                 self.log("Loaded stored user reviews data at: {}".format(
-                    user_reviews_pkl_file_path))
+                    self.user_reviews_pkl_file_path))
                 user_reviews = pickle.load(user_reviews_file)
+                user_encoding_df = self.get_item_encoding(reconstruct=reconstruct)
+                product_encoding_df = self.get_user_encoding(reconstruct=reconstruct)
         else:
             # Log the time of this function call (reset checkpoint too)
             default_logger.set_checkpoint()
@@ -59,6 +65,15 @@ class DataPreproccessor(object):
             user_reviews['original_asin'] = user_reviews['asin']
             user_reviews['asin'] = integer_encoded_products.astype(int)
 
+            # Save the encoding for products
+            self.log("Saving product integer encoding...")
+            product_encoding_df = pd.DataFrame(data={'original_asin': product_label_encoder.classes_})
+            with open(self.product_integer_encoding_file_path, 'wb') as product_encoding_file:
+                pickle.dump(product_encoding_df, product_encoding_file,
+                            pickle.HIGHEST_PROTOCOL)
+
+            self.log("_"*100)
+
             # Get reviewers
             user_ids = array(user_reviews.reviewerID)
             self.log("First 10 reviewer IDs: {}".format(user_ids[:10]))
@@ -74,18 +89,46 @@ class DataPreproccessor(object):
             user_reviews['original_reviewerID'] = user_reviews['reviewerID']
             user_reviews['reviewerID'] = integer_encoded_reviewers.astype(int)
 
+            # Save the encoding for users
+            self.log("Saving user integer encoding...")
+            user_encoding_df = pd.DataFrame(data={'original_reviewerID': reviewer_label_encoder.classes_})
+            with open(self.user_integer_encoding_file_path, 'wb') as user_encoding_file:
+                pickle.dump(user_encoding_df, user_encoding_file,
+                            pickle.HIGHEST_PROTOCOL)
+
             # Save the user reviews dataframe to a file
             self.log("Saving preprocessed user reviews data...")
-            with open(user_reviews_pkl_file_path, 'wb') as user_reviews_file:
+            with open(self.user_reviews_pkl_file_path, 'wb') as user_reviews_file:
                 pickle.dump(user_reviews, user_reviews_file,
                             pickle.HIGHEST_PROTOCOL)
             self.log("Saved user reviews data at: {}".format(
-                user_reviews_pkl_file_path))
+                self.user_reviews_pkl_file_path))
 
             # Log the time this function call took
             default_logger.log_time()
 
-        return user_reviews
+        return user_reviews, user_encoding_df, product_encoding_df
+
+    def get_item_encoding(self, reconstruct=False):
+        if reconstruct == False and os.path.exists(self.product_integer_encoding_file_path):
+            with open(self.product_integer_encoding_file_path, 'rb') as product_encoding_file:
+                self.log("Loaded stored product/item encoding data at: {}".format(
+                    self.product_integer_encoding_file_path))
+                return pickle.load(product_encoding_file)
+        else:
+            user_reviews, user_encoding_df, product_encoding_df = self.get_user_reviews()
+            return product_encoding_df
+
+    def get_user_encoding(self, reconstruct=False):
+        if reconstruct == False and os.path.exists(self.user_integer_encoding_file_path):
+            with open(self.user_integer_encoding_file_path, 'rb') as user_reviews_file:
+                self.log("Loaded stored user encoding data at: {}".format(
+                    self.user_integer_encoding_file_path))
+                return pickle.load(user_reviews_file)
+        else:
+            user_reviews, user_encoding_df, product_encoding_df = self.get_user_reviews()
+            return user_encoding_df
+
 
     def get_baskets_reviews(self, prior_or_train, reconstruct=False, none_idx=10673):
         '''
@@ -101,7 +144,7 @@ class DataPreproccessor(object):
 
         else:
             # Retrieve data and sort
-            user_reviews = self.get_user_reviews()
+            user_reviews, _, _ = self.get_user_reviews()
             print("Original")
             print(user_reviews)
             user_reviews = user_reviews.sort_values(
@@ -141,7 +184,7 @@ class Dataset(object):
         '''
         default_logger.log("[Dataset]: " + output)
 
-    def __init__(self, dataPreproccessor, subset_percentage=1.0, training_percentage=0.8):
+    def __init__(self, dataPreproccessor, subset_percentage=1.0, training_percentage=0.8, reconstruct_files=False):
         '''Initalizes the dataset. 
 
         subset_fraction: A value between 0.0 and 1.0. Determines how much of the review data to use.
@@ -152,8 +195,11 @@ class Dataset(object):
         training: Training subset of data
         '''
         self.preprocessor = dataPreproccessor
-        self.user_reviews = self.preprocessor.get_user_reviews()
+        self.user_reviews, self.user_encoding_df, self.product_encoding_df = self.preprocessor.get_user_reviews(reconstruct=reconstruct_files)
         self.log("First 10 Dataset Reviews: {}".format(self.user_reviews[:10]))
+        self.log("First 10 User Encodings: {}".format(self.user_encoding_df[:10]))
+        self.log("First 10 Product Encodings: {}".format(self.product_encoding_df[:10]))
+
         self.log("# Unique Users: {}".format(len(
             self.user_reviews['reviewerID'].unique().tolist())))
         self.log("# Unique Items: {}".format(len(

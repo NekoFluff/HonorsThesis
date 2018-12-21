@@ -208,9 +208,10 @@ class UserItemRecommender():
             self.log(
                 "ERROR: The model hasn't been created yet. Call build_model() and then train()")
             return
+
         self.log("Evaluating model...")
-        self.log("First Test Sample: ({}, {}) -> {}".format(
-            self.test_data[0][0], self.test_data[1][0], self.test_labels[0]))
+        self.log("First Test Sample: ({}, {}) -> Expected: {} Guessed: {}".format(
+        self.test_data[0][0], self.test_data[1][0], self.test_labels[0], self.model.predict(([self.test_data[0][0]], [self.test_data[1][0]]))[0][0]))
 
         # Evaluate the test data
         results = self.model.evaluate(self.test_data, self.test_labels)
@@ -267,7 +268,9 @@ class UserItemRecommender():
         '''
         file_location = self.data_options.models_folder_path + model_location
         self.model = keras.models.load_model(file_location)
+        self.compile_model()
         self.log("Loaded model stored at {}".format(file_location))
+
 
     def generate_graphs(self, training_history, graph_save_folder_path, show_graphs=False):
         '''Create a graph of accuracy and loss over time
@@ -354,11 +357,11 @@ if __name__ == "__main__":
     preprocessor = DataPreproccessor(raw_folder_path=AllOptions.DataOptions.raw_folder_path,
                                      cache_folder_path=AllOptions.DataOptions.cache_folder_path,
                                      csv_file_name='Modified_Video_Games_5')
-    dataset = Dataset(preprocessor)
+    dataset = Dataset(preprocessor, reconstruct_files=False)
 
     user_item_recommender = UserItemRecommender(dataset=dataset)
 
-    create_new_model = True
+    create_new_model = False
     if create_new_model == True:
         # This is the equivalent of calling all of the below methods in the if statement
         # user_item_recommender('weights_020_0.73loss.hdf5')
@@ -382,6 +385,7 @@ if __name__ == "__main__":
         # Load model from a checkpoint
         # user_item_recommender.load_model_from_checkpoint('weights_020_0.73loss.hdf5')
         user_item_recommender.load_model('/2018-12-20/13h-44m-53s_user_item_NN_model_[1.851val_loss]_[1.066val_mean_absolute_error]_[0.341loss]_[0.424mean_absolute_error].h5')
+        user_item_recommender.evaluate_model()
         default_logger.log_time()
 
     (user_embeddings, item_embeddings) = user_item_recommender.get_embeddings()
