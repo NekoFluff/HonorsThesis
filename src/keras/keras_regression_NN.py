@@ -1,42 +1,156 @@
 from __future__ import absolute_import, division, print_function
 
+import pathlib
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 import tensorflow as tf
 from tensorflow import keras
-
-import numpy as np
+from tensorflow.keras import layers
 
 print(tf.__version__)
 
-##############################################################
-#  Get Boston Housing Prives dataset
-##############################################################
-boston_housing = keras.datasets.boston_housing
+# Download the data
+dataset_path = keras.utils.get_file("auto-mpg.data", "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data")
+print(dataset_path)
 
-(train_data, train_labels), (test_data, test_labels) = boston_housing.load_data()
+# Read the data into a dataframe
+column_names = ['MPG','Cylinders','Displacement','Horsepower','Weight',
+                'Acceleration', 'Model Year', 'Origin'] 
+raw_dataset = pd.read_csv(dataset_path, names=column_names,
+                      na_values = "?", comment='\t',
+                      sep=" ", skipinitialspace=True)
 
-# Shuffle the training set
-order = np.argsort(np.random.random(train_labels.shape))
-train_data = train_data[order]
-train_labels = train_labels[order]
+dataset = raw_dataset.copy()
+print(dataset.tail())
 
-print("Training set: {}".format(train_data.shape))  # 404 examples, 13 features
-print("Testing set:  {}".format(test_data.shape))   # 102 examples, 13 features
+# Drop unnecessary
+print(dataset.isna().sum())
+dataset = dataset.dropna()
 
-import pandas as pd
+origin = dataset.pop('Origin')
 
-column_names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD',
-                'TAX', 'PTRATIO', 'B', 'LSTAT']
+# Split data (train and test)
+train_dataset = dataset.sample(frac=0.8,random_state=0)
+test_dataset = dataset.drop(train_dataset.index)
 
-df = pd.DataFrame(train_data, columns=column_names)
-print(df.head())
+# Inspect the data
+sns.pairplot(train_dataset[["MPG", "Cylinders", "Displacement", "Weight"]], diag_kind="kde")
+plt.show()
 
-print(train_labels[0:10])  # Display first 10 entries
+train_stats = train_dataset.describe()
+train_stats.pop("MPG")
+train_stats = train_stats.transpose()
+print("Train Stats:\n{}".format(train_stats))
 
-# Test data is *not* used when calculating the mean and std
+# Split features from labels (MPG)
+train_labels = train_dataset.pop('MPG')
+test_labels = test_dataset.pop('MPG')
 
-mean = train_data.mean(axis=0)
-std = train_data.std(axis=0)
-train_data = (train_data - mean) / std
-test_data = (test_data - mean) / std
+# Normalize
+def norm(x):
+    print(x.shape)
+    print(train_stats['mean'].shape)
+    return (x - train_stats['mean']) / train_stats['std']
 
-print(train_data[0])  # First training sample, normalized
+normed_train_data = norm(train_dataset)
+normed_test_data = norm(test_dataset)
+print(normed_test_data)
+
+# Build the model
+def build_model():
+  model = keras.Sequential([
+    layers.Dense(64, activation=tf.nn.relu, input_shape=[len(train_dataset.keys())]),
+    layers.Dense(64, activation=tf.nn.relu),
+    layers.Dense(64, activation=tf.nn.relu),
+    layers.Dense(1)
+  ])
+
+  optimizer = tf.train.RMSPropOptimizer(0.001)
+
+  model.compile(loss='mse',
+                optimizer=optimizer,
+                metrics=['mae', 'mse'])
+  return model
+
+model = build_model()
+
+model.summary()
+
+example_batch = normed_train_data[:10]
+example_result = model.predict(example_batch)
+example_result
+
+# Train the model
+# Display training progress by printing a single dot for each completed epoch
+class PrintDot(keras.callbacks.Callback):
+  def on_epoch_end(self, epoch, logs):
+    if epoch % 100 == 0: print('')
+    print('.', end='')
+
+EPOCHS = 2000
+
+early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=250)
+
+history = model.fit(
+  normed_train_data, train_labels,
+  epochs=EPOCHS, validation_split = 0.2, verbose=0,
+  callbacks=[early_stop, PrintDot()])
+
+hist = pd.DataFrame(history.history)
+hist['epoch'] = history.epoch
+print(hist.tail())
+
+# Plot the outcome/history
+import matplotlib.pyplot as plt
+
+def plot_history(history):
+  plt.figure()
+  plt.xlabel('Epoch')
+  plt.ylabel('Mean Abs Error [MPG]')
+  plt.plot(hist['epoch'], hist['mean_absolute_error'],
+           label='Train Error')
+  plt.plot(hist['epoch'], hist['val_mean_absolute_error'],
+           label = 'Val Error')
+  plt.legend()
+  plt.ylim([0,5])
+  
+  plt.figure()
+  plt.xlabel('Epoch')
+  plt.ylabel('Mean Square Error [$MPG^2$]')
+  plt.plot(hist['epoch'], hist['mean_squared_error'],
+           label='Train Error')
+  plt.plot(hist['epoch'], hist['val_mean_squared_error'],
+           label = 'Val Error')
+  plt.legend()
+  plt.ylim([0,20])
+  plt.show()
+
+plot_history(history)
+
+# Perform prediction on test data
+loss, mae, mse = model.evaluate(normed_test_data, test_labels, verbose=0)
+
+print("Testing set Mean Abs Error: {:5.2f} MPG".format(mae))
+
+# Make predictions using same test set
+test_predictions = model.predict(normed_test_data).flatten()
+
+plt.scatter(test_labels, test_predictions)
+plt.xlabel('True Values [MPG]')
+plt.ylabel('Predictions [MPG]')
+plt.axis('equal')
+plt.axis('square')
+plt.xlim([0,plt.xlim()[1]])
+plt.ylim([0,plt.ylim()[1]])
+_ = plt.plot([-100, 100], [-100, 100])
+plt.show()
+
+# Plot error in histogram
+error = test_predictions - test_labels
+plt.hist(error, bins = 25)
+plt.xlabel("Prediction Error [MPG]")
+_ = plt.ylabel("Count")
+plt.show()
