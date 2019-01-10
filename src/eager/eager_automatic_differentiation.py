@@ -58,4 +58,22 @@ print("Gradient of f(x, 5) with respect to x == 12.0")
 assert grad(x, 4).numpy() == 4.0
 print("Gradient of f(x, 4) with respect to x == 4.0")
 
+##############################################################
+#  Higher-order gradients (2nd and 3rd derivative)
+##############################################################
+x = tf.Variable(1.0)  # Create a Tensorflow variable initialized to 1.0
+
+with tf.GradientTape() as t:
+  with tf.GradientTape() as t2:
+    y = x * x * x
+  # Compute the gradient inside the 't' context manager
+  # which means the gradient computation is differentiable as well.
+  dy_dx = t2.gradient(y, x)
+d2y_dx2 = t.gradient(dy_dx, x)
+
+assert dy_dx.numpy() == 3.0
+print("Gradient of y with respect to x == 4.0")
+
+assert d2y_dx2.numpy() == 6.0
+print("Second derivative of y with respect to x == 6.0")
 
