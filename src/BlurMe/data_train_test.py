@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import os
 
 # make data matrix (user X items)
 K = 10  # percent
@@ -76,12 +77,15 @@ with open('ml-100k/u.user', 'r') as fin:
     print('User Info Loaded!')
 
 # define data loader here
-
-
 class user_item_loader(object):
     def __init__(self, user_item_matrix, user_info):
         self.user_item_matrix = user_item_matrix
         self.user_info = user_info
+
+        self.training_x = self.user_item_matrix
+        self.training_y = [v['gender'] for k, v in self.user_info.items()]
+        self.testing_x = None
+        self.testing_y = None
 
     def __len__(self):
         return self.user_item_matrix.shape[0]
@@ -103,83 +107,8 @@ class user_item_loader(object):
     def get_training_and_testing(self):
         '''Returns the inputs/outputs (for the neural network)
         '''
-        self.training_x = self.user_item_matrix
-        self.training_y = [v['gender'] for k, v in self.user_info.items()]
-        self.testing_x = None
-        self.testing_y = None
 
         return (self.training_x, self.training_y),  (self.testing_x, self.testing_y)
 
-TRAINING_BATCH_SIZE = 32
-VALIDATION_PERCENTAGE = 0.99
-EPOCHS = 5
-
 
 dataset = user_item_loader(data_matrix_train, user_info)
-(train_ratings, train_labels), (test_ratings,
-                                test_labels) = dataset.get_training_and_testing()
-(train_ratings, train_labels), (validation_ratings, validation_labels) = dataset.create_validation_from_training(
-    train_ratings, train_labels, int(VALIDATION_PERCENTAGE*len(train_ratings)))
-
-###############################################
-#  Build the model
-###############################################
-
-
-def build_model():
-    '''Build the model and store in 'self.model'
-    Edit this model as you please to obtain better results.
-    '''
-    # Input layers
-    user_input_layer = keras.layers.Input(
-        name='user_input_layer', shape=[1682])
-
-    hidden_layer = keras.layers.Dense(10000,
-                                      name='hidden_layer', activation='relu')(user_input_layer)
-
-    # Reshape to be a single number (shape will be (None, 1))
-    output_layer = keras.layers.Dense(2, activation='softmax')(hidden_layer)
-
-    model = keras.models.Model(
-        inputs=[user_input_layer], outputs=[output_layer])
-
-    # The resulting dimensions are: (batch, sequence, embedding).
-    model.summary()
-    print("Built the model")
-
-    return model
-
-
-model = build_model()
-
-
-# model = keras.Sequential([
-#     keras.layers.Dense(1682), # First layer flattens images from 28x28 to a 1d-array of 1x784 (doesn't learn anything, just reformats data)
-#     keras.layers.Dense(10000, activation=tf.nn.relu), # Second layer is a hidden layer that "learns". Uses relu as the activation function
-#     keras.layers.Dense(2, activation=tf.nn.softmax) # Third layer is the output layer
-# ])
-
-###############################################
-#  Compile the model (optimizer, loss, and metrics)
-###############################################
-model.compile(optimizer=tf.train.AdamOptimizer(),
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
-
-###############################################
-#  Train the model
-###############################################
-# Feed the model the training data, with the associated training labels
-print(train_ratings.shape)
-print(len(train_labels))
-
-# BASELINE
-results = model.evaluate(validation_ratings, validation_labels)
-print("Results (Validation Data)\nLoss: {}\nAccuracy: {}".format(
-    results[0], results[1]))
-
-# TRAIN
-training_history = model.fit(train_ratings, train_labels, epochs=EPOCHS, batch_size=TRAINING_BATCH_SIZE, validation_data=(validation_ratings, validation_labels), verbose=1, callbacks=[])
-results = model.evaluate(validation_ratings, validation_labels)
-print("Results (Validation Data)\nLoss: {}\nAccuracy: {}".format(
-    results[0], results[1]))
