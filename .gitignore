@@ -2,3 +2,4 @@
 src/recommendation/tmp/*
 **/tmp
 **/__pycache__
+**/models

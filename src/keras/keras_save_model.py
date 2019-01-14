@@ -114,11 +114,11 @@ print("Restored model, accuracy: {:5.2f}%".format(100*acc))
 #  Manually save weights (instead of using the callback method)
 ##############################################################
 # Save the weights
-model.save_weights('./checkpoints/my_checkpoint')
+model.save_weights('./src/keras/checkpoints/my_checkpoint')
 
 # Restore the weights
 model = create_model()
-model.load_weights('./checkpoints/my_checkpoint')
+model.load_weights('./src/keras/checkpoints/my_checkpoint')
 
 loss,acc = model.evaluate(test_images, test_labels)
 print("Restored model, accuracy: {:5.2f}%".format(100*acc))
