@@ -103,19 +103,40 @@ class user_item_loader(object):
         '''
         num_test_samples = int(test_sample_percentage*len(training_x))
 
+        train_all = [(i, training_x[i], training_y[i]) for i in range(len(training_x))]
+
         #################################################
         # Dataset split the Neural Network
-        self.NN_testing_x = training_x[:num_test_samples]
-        self.NN_training_x = training_x[num_test_samples:]
+        np.random.shuffle(train_all)
+        test_portion = train_all[:num_test_samples]
+        train_portion = train_all[num_test_samples:]
 
-        self.NN_testing_y = training_y[:num_test_samples]
-        self.NN_training_y = training_y[num_test_samples:]
-
-        self.NN_testing_user_ids = [i for i in range(num_test_samples)]
-        self.NN_training_user_ids = [i for i in range(num_test_samples, len(training_x))]
+        self.NN_test_user_ids, self.NN_testing_x, self.NN_testing_y = zip(*test_portion)
+        self.NN_test_user_ids, self.NN_testing_x, self.NN_testing_y = np.array(self.NN_test_user_ids),  np.array(self.NN_testing_x),  np.array(self.NN_testing_y)
+        self.NN_train_user_ids, self.NN_training_x, self.NN_training_y = zip(*train_portion)
+        self.NN_train_user_ids, self.NN_training_x, self.NN_training_y =  np.array(self.NN_train_user_ids),  np.array(self.NN_training_x),  np.array(self.NN_training_y)
         ###################################################
 
-        return (self.NN_training_x, self.NN_training_y), (self.NN_testing_x, self.NN_testing_y), (self.NN_training_user_ids, self.NN_testing_user_ids)
+        return (self.NN_training_x, self.NN_training_y), (self.NN_testing_x, self.NN_testing_y), (self.NN_train_user_ids, self.NN_test_user_ids)
+    
+    def get_training_testing_for_NN(self):
+        return (self.NN_training_x, self.NN_training_y), (self.NN_testing_x, self.NN_testing_y), (self.NN_train_user_ids, self.NN_test_user_ids)
 
+    def save_training_and_testing_split_for_NN(self, folder_location):
+        np.save(folder_location+"/NN_training_x.npy", self.NN_training_x)    # .npy extension is added if not given
+        np.save(folder_location+"/NN_training_y.npy", self.NN_training_y)
+        np.save(folder_location+"/NN_testing_x.npy", self.NN_testing_x)  
+        np.save(folder_location+"/NN_testing_y.npy", self.NN_testing_y)  
+        np.save(folder_location+"/NN_training_user_ids.npy", self.NN_train_user_ids) 
+        np.save(folder_location+"/NN_testing_user_ids.npy", self.NN_test_user_ids) 
+         
+    def load_training_and_testing_split_for_NN(self, folder_location):
+        self.NN_training_x = np.load(folder_location+"/NN_training_x.npy")    # .npy extension is added if not given
+        self.NN_training_y = np.load(folder_location+"/NN_training_y.npy")
+        self.NN_testing_x = np.load(folder_location+"/NN_testing_x.npy")  
+        self.NN_testing_y= np.load(folder_location+"/NN_testing_y.npy")  
+        self.NN_train_user_ids = np.load(folder_location+"/NN_training_user_ids.npy") 
+        self.NN_test_user_ids = np.load(folder_location+"/NN_testing_user_ids.npy") 
+         
 # Dataset for use in other files
 dataset = user_item_loader(data_matrix_train, user_info)
