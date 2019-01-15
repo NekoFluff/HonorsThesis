@@ -5,7 +5,7 @@ from tensorflow import keras
 import os
 
 # make data matrix (user X items)
-K = 10  # percent
+K = 10  # K most recent reviews
 data_file = 'ml-100k/u.data'
 data_matrix = np.zeros((943, 1682), dtype=np.double)
 data_user_item_tmp = {}
@@ -25,7 +25,8 @@ with open(data_file, 'r') as fin:
         timestmp = int(timestmp)
 
         # IMPORTANT: Use user 'rate' instead of 1 for non-binary
-        data_matrix[usr_id - 1, itm_id - 1] = 1
+        #data_matrix[usr_id - 1, itm_id - 1] = 1
+        data_matrix[usr_id - 1, itm_id - 1] = rate
 
         # build user-item dict (based on timestamp)
         if usr_id - 1 not in data_user_item_tmp:
@@ -81,11 +82,14 @@ class user_item_loader(object):
     def __init__(self, user_item_matrix, user_info):
         self.user_item_matrix = user_item_matrix
         self.user_info = user_info
-
-        self.training_x = self.user_item_matrix
-        self.training_y = [v['gender'] for k, v in self.user_info.items()]
-        self.testing_x = None
-        self.testing_y = None
+        self.user_genders = [v['gender'] for k, v in self.user_info.items()]
+        ###################################
+        # For Matrix Factorization
+        self.MF_training_x = self.user_item_matrix
+        self.MF_training_y = self.user_genders
+        self.MF_testing_x = data_matrix # The original matrix with K more reviews
+        self.MF_testing_y = self.user_genders # Should be the same as MF_training_y
+        ###################################
 
     def __len__(self):
         return self.user_item_matrix.shape[0]
@@ -94,15 +98,23 @@ class user_item_loader(object):
         # return (user vector, user ID)
         return (self.user_item_matrix[ind, :], self.user_ids[ind])
 
-    def create_validation_from_training(self, training_x, training_y, num_validation_samples):
-        '''Create a validation set from the training set
+    def split_training_testing_for_NN(self, training_x, training_y, test_sample_percentage):
+        '''Create a testing set from the training set
         '''
-        validation_data = training_x[:num_validation_samples]
-        partial_train_data = training_x[num_validation_samples:]
+        num_test_samples = int(test_sample_percentage*len(training_x))
 
-        validation_labels = training_y[:num_validation_samples]
-        partial_train_labels = training_y[num_validation_samples:]
-        return (partial_train_data, partial_train_labels), (validation_data, validation_labels)
+        #################################################
+        self.NN_testing_x = training_x[:num_test_samples]
+        self.NN_training_x = training_x[num_test_samples:]
+
+        self.NN_testing_y = training_y[:num_test_samples]
+        self.NN_training_y = training_y[num_test_samples:]
+
+        self.NN_testing_user_ids = [i for i in range(num_test_samples)]
+        self.NN_training_user_ids = [i for i in range(num_test_samples, len(training_x))]
+        ###################################################
+
+        return (self.NN_training_x, self.NN_training_y), (self.NN_testing_x, self.NN_testing_y), (self.NN_training_user_ids, self.NN_testing_user_ids)
 
     def get_training_and_testing(self):
         '''Returns the inputs/outputs (for the neural network)

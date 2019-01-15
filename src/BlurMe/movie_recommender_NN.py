@@ -11,12 +11,11 @@ from data_train_test import dataset
 #  Initialize the variables and retrieve the data
 ###############################################
 TRAINING_BATCH_SIZE = 32
-TEST_PERCENTAGE = 0.20
 NUM_ITEMS = 1682
 EPOCHS = 5
 
 (train_ratings, train_labels), (test_ratings,
-                                test_labels), (training_user_ids, testing_user_ids) = dataset.split_training_testing_for_NN(dataset.MF_training_x, dataset.MF_training_y, TEST_PERCENTAGE)
+                                test_labels) = dataset.get_training_and_testing()
 
 
 ###############################################
@@ -30,11 +29,17 @@ def build_model():
     user_input_layer = keras.layers.Input(
         name='user_input_layer', shape=[NUM_ITEMS])
 
-    hidden_layer = keras.layers.Dense(10000,
-                                      name='hidden_layer', activation='relu')(user_input_layer)
+    hidden_layer1 = keras.layers.Dense(512,
+                                      name='hidden_layer1', activation='relu')(user_input_layer)
 
+    hidden_layer2 = keras.layers.Dense(1024,
+                                      name='hidden_layer2', activation='relu')(hidden_layer1)
+
+    hidden_layer3 = keras.layers.Dense(256,
+                                      name='hidden_layer3', activation='relu')(hidden_layer2)
+                                      
     # Reshape to be a single number (shape will be (None, 1))
-    output_layer = keras.layers.Dense(2, activation='softmax')(hidden_layer)
+    output_layer = keras.layers.Dense(1)(hidden_layer3)
 
     model = keras.models.Model(
         inputs=[user_input_layer], outputs=[output_layer])
