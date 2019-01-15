@@ -104,6 +104,7 @@ class user_item_loader(object):
         num_test_samples = int(test_sample_percentage*len(training_x))
 
         #################################################
+        # Dataset split the Neural Network
         self.NN_testing_x = training_x[:num_test_samples]
         self.NN_training_x = training_x[num_test_samples:]
 
@@ -116,11 +117,5 @@ class user_item_loader(object):
 
         return (self.NN_training_x, self.NN_training_y), (self.NN_testing_x, self.NN_testing_y), (self.NN_training_user_ids, self.NN_testing_user_ids)
 
-    def get_training_and_testing(self):
-        '''Returns the inputs/outputs (for the neural network)
-        '''
-
-        return (self.training_x, self.training_y),  (self.testing_x, self.testing_y)
-
-
+# Dataset for use in other files
 dataset = user_item_loader(data_matrix_train, user_info)

@@ -3,20 +3,11 @@ import numpy as np
 from matrix_factorization import MF
 from data_train_test import dataset
 
-R = np.array([
-    [5, 3, 0, 1],
-    [4, 0, 0, 1],
-    [1, 1, 0, 5],
-    [1, 0, 0, 4],
-    [0, 1, 5, 4],
-])
-
 def get_rating_predictor_using_training_data(training_enabled=False, reconstruct=False):
     # Train by holding out 10 ratings per user
     R = dataset.MF_training_x
-    print(dataset.MF_training_x)
     K = 128 # Dimension of latent matrix
-    mf = MF(R, K=K, alpha=0.01, beta=0.01, iterations=100)
+    mf = MF(R, K=K, alpha=0.01, beta=0.01, iterations=150)
     folder = "./models/matrix_factorization_K{}/".format(K)
     if not os.path.isdir(folder):
         os.mkdir(folder)
@@ -46,7 +37,7 @@ def get_rating_predictor_using_obscured_data(training_enabled=False, reconstruct
     # TODO: 10 fold cross validation...
 
     K = 128 # Dimension of latent matrix
-    mf = MF(R, K=K, alpha=0.01, beta=0.01, iterations=100)
+    mf = MF(R, K=K, alpha=0.01, beta=0.01, iterations=150)
     folder = "./models/matrix_factorization_with_obfuscation_K{}/".format(K)
     if not os.path.isdir(folder):
         os.mkdir(folder)
@@ -66,12 +57,21 @@ def get_rating_predictor_using_obscured_data(training_enabled=False, reconstruct
     return mf
 
 def view_change_in_rmse():
+    print("-"*100)
+    print("Final Results:")
     mf1 = get_rating_predictor_using_training_data(training_enabled=False)
     mf2 = get_rating_predictor_using_obscured_data(training_enabled=False)
     print("MF2 - MF1 = {}".format(mf2.mse(dataset.MF_testing_x) - mf1.mse(dataset.MF_testing_x)))
 
+
+
 if __name__ == "__main__":
-    # for i in range(200):
-    #     #get_rating_predictor_using_training_data(training_enabled=True)
-    #     get_rating_predictor_using_obscured_data(training_enabled=True)
+    # IMPORTANT: Set generate to True if you wish to generate the Matrix Factorizations
+
+    generate = True
+    
+    if generate:
+        get_rating_predictor_using_training_data(training_enabled=True)
+        get_rating_predictor_using_obscured_data(training_enabled=True)
+
     view_change_in_rmse()
