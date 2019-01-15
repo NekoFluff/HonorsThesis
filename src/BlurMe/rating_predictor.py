@@ -57,10 +57,10 @@ def get_rating_predictor_using_obscured_data(training_enabled=False, reconstruct
     return mf
 
 def view_change_in_rmse():
-    print("-"*100)
-    print("Final Results:")
     mf1 = get_rating_predictor_using_training_data(training_enabled=False)
     mf2 = get_rating_predictor_using_obscured_data(training_enabled=False)
+    print("-"*100)
+    print("Final Result:")
     print("MF2 - MF1 = {}".format(mf2.mse(dataset.MF_testing_x) - mf1.mse(dataset.MF_testing_x)))
 
 
@@ -68,7 +68,7 @@ def view_change_in_rmse():
 if __name__ == "__main__":
     # IMPORTANT: Set generate to True if you wish to generate the Matrix Factorizations
 
-    generate = True
+    generate = False
     
     if generate:
         get_rating_predictor_using_training_data(training_enabled=True)

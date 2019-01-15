@@ -1,6 +1,5 @@
 import math
 import random
-from numpy.random import choice
 from data_train_test import dataset
 
 import tensorflow as tf
@@ -14,8 +13,11 @@ k1 = 0.01
 k5 = 0.05
 k10 = 0.10
 k15 = 0.15
+k20 = 0.20
+chosen_k = k20
+chosen_strategy = 'greedy' # Or 'sampled', or 'random'
 NUM_ITEMS = 1682
-TEST_PERCENTAGE = 0.2
+TEST_PERCENTAGE = 0.2 # Make sure this matches with the percentage in gender_inference_NN.py so that the same data is used in both files
 L_M = [] # List of male movies sorted in decreasing order by scoring function
 L_F = [] # List of female movies sorted in decreasing order by scoring function
 
@@ -44,13 +46,16 @@ def select_movies(user_movies, k_percentage, movies_list, strategy = 'random', p
     num_added = 0
     greedy_index = 0
 
+    if strategy == 'sampled':
+        movie_ids = [movie for movie, score in movies_list]
+
     # Repeat until num_add_movies have been added to the original set of user rated movies
     while num_added < num_add_movies:
                                                                                                                  # Select a movie using the given strategy
         if (strategy == 'random'):
             selected_movie = random.choice(movies_list)[0]
         elif (strategy == 'sampled'):
-            selected_movie = choice(movies_list, 1, movies_list_distribution)[0]
+            selected_movie = np.random.choice(movie_ids, 1, movies_list_distribution)[0]
         elif (strategy == 'greedy'):
             selected_movie = movies_list[greedy_index][0]
             greedy_index += 1
@@ -134,7 +139,7 @@ movies_list = L_M if user_gender == 1 else L_F # Use the male list if the user i
 user_movies = set([movie_index for movie_index, rating in enumerate(user1) if rating > 0])
 
 
-new_user_movies = select_movies(user_movies=user_movies, k_percentage=k10, movies_list=movies_list, strategy = 'greedy')
+new_user_movies = select_movies(user_movies=user_movies, k_percentage=chosen_k, movies_list=movies_list, strategy=chosen_strategy)
 
 print("Known User Gender: ", user_gender)
 print("Original User Movie Length: ", len(user_movies))
@@ -174,7 +179,7 @@ for user_index, user_vector in enumerate(test_ratings):
 
     # Retrieve set of movies rated by user
     user_movies = set([movie_index for movie_index, rating in enumerate(user_vector) if rating > 0])
-    new_user_movies = select_movies(user_movies=user_movies, k_percentage=k15, movies_list=movies_list, strategy = 'greedy')
+    new_user_movies = select_movies(user_movies=user_movies, k_percentage=chosen_k, movies_list=movies_list, strategy=chosen_strategy)
 
     # print("Known User Gender: ", user_gender)
     # print("Original User Movie Length: ", len(user_movies))
