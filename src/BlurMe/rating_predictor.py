@@ -4,9 +4,9 @@ from matrix_factorization import MF
 from data_train_test import dataset
 
 k_values = [0.01, 0.05, 0.10, 0.15, 0.20] # IMPORTANT! These need to match with the ones in gender_obfuscation
-# TODO: Move these into a different file
+# TODO: Move k_values into a different file
 
-def get_rating_predictor_using_training_data(training_enabled=False, reconstruct=False):
+def get_rating_predictor_using_training_data(training_enabled=False, reconstruct=False, skip_already_trained=False):
     # Train by holding out 10 ratings per user
     R = dataset.MF_training_x
     K = 128 # Dimension of latent matrix
@@ -14,13 +14,12 @@ def get_rating_predictor_using_training_data(training_enabled=False, reconstruct
     folder = "./models/matrix_factorization_[dim{}]/".format(K)
     if not reconstruct and os.path.isdir(folder):
         mf.load(folder_location=folder)
-    elif not os.path.isdir(folder):
-        os.mkdir(folder)
         
-
     # Train if training is enabled
-    if training_enabled:
+    if training_enabled and not (skip_already_trained and os.path.isdir(folder)):
         mf.train()
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
         mf.save(folder_location=folder)
 
     print("Matrix Factorization RMSE (with withheld ratings):", mf.mse(R))
@@ -30,7 +29,7 @@ def get_rating_predictor_using_training_data(training_enabled=False, reconstruct
     print("Predicted Rating for User 0, Item 0:", mf.get_rating(0,0))
     return mf
 
-def get_rating_predictor_using_obscured_data(modified_user_item_matrix, test_percentage, k_obfuscation, training_enabled=False, reconstruct=False):
+def get_rating_predictor_using_obscured_data(modified_user_item_matrix, test_percentage, k_obfuscation, training_enabled=False, reconstruct=False, skip_already_trained=False):
     # Train by holding out same 10 ratings, but include the obfuscation ratings for 10% of the users
     R = dataset.MF_training_x # Data with ratings held out
     for (user_id, new_user_vector) in modified_user_item_matrix:
@@ -41,14 +40,15 @@ def get_rating_predictor_using_obscured_data(modified_user_item_matrix, test_per
     K = 128 # Dimension of latent matrix
     mf = MF(R, K=K, alpha=0.01, beta=0.01, iterations=150)
     folder = "./models/matrix_factorization_with_obfuscation_[dim{}]_[test%{:.2f}]_[k{:.2f}]/".format(K, test_percentage, k_obfuscation)
-    if not os.path.isdir(folder):
-        os.mkdir(folder)
-    elif not reconstruct and os.path.isdir(folder):
+    if not reconstruct and os.path.isdir(folder):
         mf.load(folder_location=folder)
-
+    
     # Train if training is enabled
-    if training_enabled:
+    if training_enabled and not (skip_already_trained and os.path.isdir(folder)):
         mf.train()
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+    
         mf.save(folder_location=folder)
 
     print("Matrix Factorization RMSE (with withheld ratings and obfuscation):", mf.mse(R))
@@ -59,11 +59,18 @@ def get_rating_predictor_using_obscured_data(modified_user_item_matrix, test_per
     return mf
 
 def view_change_in_results():
+    precision_recall_k = 10
 
-    mf1 = get_rating_predictor_using_training_data(training_enabled=True)
+    mf1 = get_rating_predictor_using_training_data(training_enabled=False)
     mf1_mse = mf1.mse(dataset.MF_testing_x)
     mf1_mae = mf1.mae(dataset.MF_testing_x)
-    mf1_precisions, mf1_recalls, mf1_F1_list = mf1.precision_and_recall_at_k(dataset.MF_testing_x, k=5)
+    mf1_precisions, mf1_recalls, mf1_F1_list = mf1.precision_and_recall_at_k(dataset.MF_testing_x, k=precision_recall_k)
+    mf1_avg_precision = sum(mf1_precisions)/len(mf1_precisions)
+    mf1_avg_recall = sum(mf1_recalls)/len(mf1_recalls)
+    mf1_avg_F1 = sum(mf1_F1_list)/len(mf1_F1_list)
+
+    results = []
+    #results.append(['test_percentage', 'k', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1'])
 
     # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
     for test_percentage in TEST_PERCENTAGES: 
@@ -79,22 +86,40 @@ def view_change_in_results():
             mf2 = get_rating_predictor_using_obscured_data(modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=False)
             mf2_mse = mf2.mse(dataset.MF_testing_x)
             mf2_mae = mf2.mae(dataset.MF_testing_x)
-            mf2_precisions, mf2_recalls, mf2_F1_list = mf2.precision_and_recall_at_k(dataset.MF_testing_x, k=5)
+            mf2_precisions, mf2_recalls, mf2_F1_list = mf2.precision_and_recall_at_k(dataset.MF_testing_x, k=precision_recall_k)
 
-            print("MF2 MSE - MF1 MSE = {}".format(mf2_mse - mf1_mse))    
+            mf2_avg_precision = sum(mf2_precisions)/len(mf2_precisions)
+            mf2_avg_recall = sum(mf2_recalls)/len(mf2_recalls)
+            mf2_avg_F1 = sum(mf2_F1_list)/len(mf2_F1_list)
+
+            print("MF2 RMSE - MF1 RMSE = {}".format(mf2_mse - mf1_mse))    
             print("MF2 MAE - MF1 MAE = {}".format(mf2_mae - mf1_mae))    
-
             
-if __name__ == "__main__":
-    # IMPORTANT: Set generate to True if you wish to generate the Matrix Factorizations
+            results.append([test_percentage, k, mf2_mse, mf2_mae, mf2_avg_precision, mf2_avg_recall, mf2_avg_F1])
+            np_results = np.array(results)
 
+    print(np_results)
+
+    if not os.path.isdir('./results/'):
+        os.mkdir('./results/')
+    save_location = "./results/matrix_factorization_recommender_results_k{}.out".format(precision_recall_k)
+    print("Saved at Matrix Factorization Factorization Results at " + save_location)
+    print("Data is to be read as:")
+    print(['test_percentage', 'k', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1'])
+
+    np.savetxt(save_location, np_results)
+
+
+
+if __name__ == "__main__":
+    # IMPORTANT: Set generate to True if you wish to generate the Matrix Factorizations, otherwise set to false to skip training
     generate = True
     
     from gender_obfuscation import test_NN, load_NN_and_movie_lists
     from gender_inference_NN import get_NN_model_location, TEST_PERCENTAGES, split_data
 
     if generate:
-        #get_rating_predictor_using_training_data(training_enabled=True)
+        get_rating_predictor_using_training_data(training_enabled=True, skip_already_trained=True)
          
         # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
         for test_percentage in TEST_PERCENTAGES: 
@@ -104,17 +129,12 @@ if __name__ == "__main__":
 
             # For every k value (obfuscation percentage), generate the rmse 
             for k in k_values:
-                
-                # TODO: Remove these two lines
-                if (test_percentage == 0.05 and (k == 0.01 or k == 0.05)) or (test_percentage == 0.1 and k==0.01):
-                    continue
-
 
                 print("Retrieving Obfuscated User Item Matrix to train Matrix Factorization Recommender...")
                 _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_user_ids, L_M, L_F, k)
                 
-                print("Training MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))
-                get_rating_predictor_using_obscured_data(modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=True)
+                print("\nTraining MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))
+                get_rating_predictor_using_obscured_data(modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=True, skip_already_trained=True)
 
 
     view_change_in_results()

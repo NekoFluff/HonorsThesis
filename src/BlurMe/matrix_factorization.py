@@ -80,7 +80,7 @@ class MF():
         error /= len(xs)
         return error
     
-    def precision_and_recall_at_k(self, comparison_matrix, k = 10):
+    def precision_and_recall_at_k(self, comparison_matrix, k = 20):
         # Knowledge taken from:
         # https://medium.com/@m_n_malaeb/recall-and-precision-at-k-for-recommender-systems-618483226c54
         
@@ -100,13 +100,13 @@ class MF():
         recommended_set = set()
         predicted = self.full_matrix()
 
-        for user in range(comparison_matrix):
+        for user in range(len(comparison_matrix)):
 
             # Filter out movies without true ratings
             movie_ratings_for_user = [(i,v) for i,v in enumerate(predicted[user]) if comparison_matrix[user][i] != 0]
             # Sort movies by ratings
             movie_ratings_for_user = sorted(movie_ratings_for_user, key=lambda x: x[1], reverse=True)  # Sort based on rating
-            print("Predicted Movie Ratings: ", movie_ratings_for_user[:5])
+            print("Predicted Movie Ratings (First 5): ", movie_ratings_for_user[:5])
 
             # Find k ratings whose PREDICTED rating is >= 3.5
             for i in range(k):
