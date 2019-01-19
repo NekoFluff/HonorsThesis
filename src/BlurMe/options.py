@@ -2,7 +2,7 @@ import os
 ##################################
 # Obfuscation options:
 ##################################
-inference_target = 'gender' # 'gender', 'age', or 'job'
+inference_target = 'age' # 'gender', 'age', or 'job'
 average_or_predicted_ratings = 'average' #'predicted' or 'average'
 chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
 
@@ -27,7 +27,10 @@ if not os.path.isdir(MF_results_folder):
 ##################################
 NUM_ITEMS = 1682
 TEST_PERCENTAGES = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30] # Percentage of users to have in the test set
-k_values = [0.01, 0.05, 0.10, 0.15, 0.20, 25, 30, 35, 40, 45, 50] # If k < 1, then it is a percentage addition. Otherwise it is a flat addition of movies in order to obfuscate user attributes
+#k_values = [0.01, 0.05, 0.10, 0.15, 0.20, 25, 30, 35, 40, 45, 50] # If k < 1, then it is a percentage addition. Otherwise it is a flat addition of movies in order to obfuscate user attributes
+k_values = [30, 40, 45]
+precision_at_k_values = [35]
+
 NUM_GENDER_CLASSES = 2 # Male and female
 NUM_JOB_CLASSES = 21 # Number of classes (This is the output layer sizefor the NN)
 NUM_AGE_CLASSES = 3 # Over 45, Under 35, Between 45 and 35
@@ -45,6 +48,12 @@ else:
 # Neural Network Training options:
 ##################################
 TRAINING_BATCH_SIZE = 32
-EPOCHS = 20 
+EPOCHS = 17
+
+##################################
+# Matrix Factorization Training options:
+##################################
+MF_TRAINING_ITERATIONS = 100
+latent_matrix_dimension = 128 # Dimension of latent matrix
 
 

@@ -24,8 +24,8 @@ def build_model():
     user_input_layer = keras.layers.Input(
         name='user_input_layer', shape=[options.NUM_ITEMS])
 
-    hidden_layer = keras.layers.Dense(30000,
-                                      name='hidden_layer', activation='relu')(user_input_layer)
+    hidden_layer = keras.layers.Dense(100,
+                                      name='hidden_layer', activation='relu', kernel_regularizer=keras.regularizers.l2(0.01))(user_input_layer)
 
     # Reshape to be a single number (shape will be (None, 1))
     output_layer = keras.layers.Dense(options.NUM_CLASSES, activation='softmax')(hidden_layer)
@@ -41,7 +41,7 @@ def build_model():
 
 
 ###############################################
-#  Compile many models, each using their own 
+#  Compile many models, each using their own test percentage
 ###############################################
 if __name__ == "__main__":
 

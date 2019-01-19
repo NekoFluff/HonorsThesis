@@ -1,0 +1,48 @@
+Options can be found in options.py 
+
+Obuscation options include:
+inference_target = 'job' # 'gender', 'age', or 'job'
+average_or_predicted_ratings = 'average' # 'predicted' or 'average'
+chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
+
+Adjust as necessary. Once you have chosen your settings follow these next steps:
+-----------------------------------------------------------------------------------------------------------
+FIRST, run attribute_inference_NN.py to generate the Neural Networks. One neural network will be generated per TEST_PERCENTAGE (in options.py) since each neural network will be trained with a different percentage of the training data, chosen at random.
+
+Information about the neural network:
+    - Input is one-hot encoding
+    - Hidden layer is 100 neurons
+    - Last layer is softmax
+    - Loss function is cross entropy Loss
+    - Trained over 17 EPOCHS (set in options.py)
+
+SECOND, run attribute_obfuscation.py. This will generate results in a results folder. 
+    - (Accuracy of NN before obfuscation and after obfuscation with different levels of K Obfuscation where K is the number of movies to add to each user)
+
+THIRD, run rating_predictor.py. This will generate more results in the same results folder. 
+    - (Stats on Matrix Factorization recommender before and after obfuscation.)
+    - latent_matrix_dimension can be set (default 128) for Matrix Factorization in options.py
+    - RMSE, MAE, precision@k, recall@k, F1@k
+    - NOTE: This is the longest process since it takes a long period of time to train the Matrix Factorization for each obfuscated test set, obfuscated at different levels
+-----------------------------------------------------------------------------------------------------------
+
+After performing these steps, you can change the inference target to another value and perform the same steps again.
+
+-----------------------------------------------------------------------------------------------------------
+
+HOW OBFUSCATION WORKS:
+1. A list is generated for each attribute (e.g. Over age 45, Under age 35, Between age 45 and age 35). The intersection of all lists is the empty set.
+2. The lists are sorted corresponding to a score in decreasing order
+3. In the BlurMe paper, this 'score' is calculated using the weights/coefficients from their Logistic Regression Inference Attack
+4. In this work, we follow Attrigaurd's NN Inference Attack approach. 
+5. In order to calculate scores for the BlurMe approach, we input user vectors where each vector only contains 1 movie viewed with a rating of 5 (MAX)
+6. With the softmax output of each vector input, we determine which class the vector belongs to.
+    e.g. [5, 0 ,0 ,0] .. corresponds to movie #0 having a rating of 5
+         The softmax output could be [0.95, 0.05], in which case if this corresponds to [Male, Female] it would be a Male movie with score 0.95
+    - This should capture the same essence as the weight coefficients from the Logistic Inference Attack presented in BlurMe 
+    - (Higher scores for movies more strongly tied to the respective class/attribute)
+    
+7. Once the movies have been sorted by score, we randomly choose a class/attribute that does not match the user. (If the user were male, we would look at the female list)
+8. Once we have determined which class/attribute list to look at, we use a 'greedy' approach and select the k-highest scored movies in that class/attribute
+9. This movie is then given the 'average' rating or 'predicted' rating (predicted rating is obtained from Matrix Factorization with training data)
+10. Repeat until k movies have been selected and the user's class/attribute has been so-called 'obfusacated'

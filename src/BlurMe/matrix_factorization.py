@@ -114,12 +114,13 @@ class MF():
                     recommended_set.add(movie_ratings_for_user[i][0])
                 else:
                     break
-
+            
             # Filter out movies without true ratings
             true_movie_ratings_for_user = [(i,v) for i,v in enumerate(comparison_matrix[user]) if comparison_matrix[user][i] != 0]
        
             # Sort movies by ratings
             true_movie_ratings_for_user = sorted(true_movie_ratings_for_user, key=lambda x: x[1], reverse=True)  # Sort based on rating
+            print("True Movie Ratings (First 5): ", true_movie_ratings_for_user[:5])
 
             # Find k ratings whose TRUE rating is >= 3.5   
             for i in range(len(true_movie_ratings_for_user)):
@@ -131,7 +132,10 @@ class MF():
             # Find intersection
             both_set = relevant_set.intersection(recommended_set)
 
-            precision = len(both_set)/len(recommended_set)
+            if not len(recommended_set) == 0:
+                precision = len(both_set)/(len(recommended_set))
+            else:
+                precision = 0
             recall = len(both_set)/len(relevant_set)
 
             user_precision_list.append(precision)
@@ -140,7 +144,7 @@ class MF():
             print("User Recall: ", recall)
             print("-"*100)
 
-        F1_list = [2 * (p * r) / (p + r) for p, r in zip(user_precision_list, user_recall_list)]
+        F1_list = [2 * (p * r) / (p + r) if p + r > 0 else 0 for p, r in zip(user_precision_list, user_recall_list) ]
         return (user_precision_list, user_recall_list, F1_list)
 
     def sgd(self):

@@ -78,7 +78,8 @@ def load_NN_and_movie_lists(model_save_path):
 
     # Generate input for each movie to determine if it's male or female
     singular_movie_input = np.eye(options.NUM_ITEMS)
-
+    singular_movie_input *= 5
+    print(singular_movie_input)
     # Perform prediction
     predictions = model.predict(singular_movie_input)
     # print("Sample Movie Predictions:\n[Male, Female]")
@@ -185,7 +186,7 @@ def test_NN_with_user(model, user_vector, user_attribute, categorical_movies, ch
 
     print("\n","#"*100,"\n")
 
-def test_NN(model, test_ratings, test_user_ids, categorical_movies, chosen_k):
+def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, chosen_k):
     ''' Evaluate on test set without obfuscation and with obfuscation
 
     k: The percentage of movies to add (obfuscation)
@@ -199,15 +200,15 @@ def test_NN(model, test_ratings, test_user_ids, categorical_movies, chosen_k):
     modified_user_item_matrix = [] # Includes user ids
     dataset = load_dataset(0)
 
-    if options.inference_target == 'gender':
-        test_labels = [dataset.user_info[user_id]['gender'] for user_id in test_user_ids]
-    elif options.inference_target == 'age':
-        test_labels = [dataset.user_ages[user_id] for user_id in test_user_ids]
-    elif options.inference_target == 'job':
-        test_labels = [dataset.user_jobs[user_id] for user_id in test_user_ids]
-    else:
-        print("Please use 'gender', 'age', or 'job' and the inference target.")
-        return
+    # if options.inference_target == 'gender':
+    #     test_labels = [dataset.user_info[user_id]['gender'] for user_id in test_user_ids]
+    # elif options.inference_target == 'age':
+    #     test_labels = [dataset.user_ages[user_id] for user_id in test_user_ids]
+    # elif options.inference_target == 'job':
+    #     test_labels = [dataset.user_jobs[user_id] for user_id in test_user_ids]
+    # else:
+    #     print("Please use 'gender', 'age', or 'job' and the inference target.")
+    #     return
         
     test_ratings_obfuscated = [] # Does not include user ids 
     mf = get_rating_predictor_using_training_data(dataset.MF_training_x)
@@ -240,6 +241,9 @@ def test_NN(model, test_ratings, test_user_ids, categorical_movies, chosen_k):
         # print("Original Predicted User job: ", old_prediction)
 
         #print("Old:", np.argmax(old_prediction[0]))
+        
+
+        #print("{} == {}? -> {}".format(user_attribute, np.argmax(old_prediction[0]), user_attribute == np.argmax(old_prediction[0])))
         if user_attribute == np.argmax(old_prediction[0]):
             success_original += 1
 
@@ -305,7 +309,7 @@ if __name__ == "__main__":
             saved_model_location = get_NN_model_location(test_percentage)
             model, categorical_movies = load_NN_and_movie_lists(saved_model_location)
 
-            non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, modified_user_item_matrix = test_NN(model, test_ratings, test_user_ids, categorical_movies, k)
+            non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
             del model, categorical_movies
             tf.keras.backend.clear_session()
 

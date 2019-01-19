@@ -4,15 +4,11 @@ from matrix_factorization import MF
 from data_train_test import load_dataset
 import options
 
-k_values = [0.01, 0.05, 0.10, 0.15, 0.20] # IMPORTANT! These need to match with the ones in gender_obfuscation
-# TODO: Move k_values into a different file
-
 def get_rating_predictor_using_training_data(training_data, training_enabled=False, reconstruct=False, skip_already_trained=False):
     # Train by holding out 10 ratings per user
     R = training_data
-    K = 128 # Dimension of latent matrix
-    mf = MF(R, K=K, alpha=0.01, beta=0.01, iterations=150)
-    folder = "./models/matrix_factorization_[dim{}]/".format(K)
+    mf = MF(R, K=options.latent_matrix_dimension, alpha=0.01, beta=0.01, iterations=options.MF_TRAINING_ITERATIONS)
+    folder = "./models/matrix_factorization_[dim{}]/".format(options.latent_matrix_dimension)
     if not reconstruct and os.path.isdir(folder):
         mf.load(folder_location=folder)
         
@@ -33,10 +29,9 @@ def get_rating_predictor_using_obscured_data(training_data, modified_user_item_m
         R[user_id] = new_user_vector # Replace user history with obfuscated user history
 
     # TODO: 10 fold cross validation...?
-    K = 128 # Dimension of latent matrix
-    mf = MF(R, K=K, alpha=0.01, beta=0.01, iterations=150)
+    mf = MF(R, K=options.latent_matrix_dimension, alpha=0.01, beta=0.01, iterations=options.MF_TRAINING_ITERATIONS)
     MF_inference_folder = "./models/MF_{}_trained_with_{}_rating/".format(options.inference_target, options.average_or_predicted_ratings)
-    folder = MF_inference_folder + "/matrix_factorization_with_obfuscation_[dim{}]_[test%{:.2f}]_[k{:.2f}]/".format(K, test_percentage, k_obfuscation)
+    folder = MF_inference_folder + "/matrix_factorization_with_obfuscation_[dim{}]_[test%{:.2f}]_[k{:.2f}]/".format(options.latent_matrix_dimension, test_percentage, k_obfuscation)
     if not reconstruct and os.path.isdir(folder):
         mf.load(folder_location=folder)
     
@@ -52,12 +47,13 @@ def get_rating_predictor_using_obscured_data(training_data, modified_user_item_m
 
     return mf
 
-def view_change_in_results(precision_recall_k_values = [5, 10, 15, 20]):
+def view_change_in_results():
 
     # Compute results with differing values of k
-    for precision_recall_k in precision_recall_k_values:
+    for precision_recall_k in options.precision_at_k_values:
 
         dataset = load_dataset(0)
+
         mf1 = get_rating_predictor_using_training_data(training_data=dataset.MF_training_x, training_enabled=False)
         mf1_mse = mf1.mse(dataset.MF_testing_x)
         mf1_mae = mf1.mae(dataset.MF_testing_x)
@@ -65,7 +61,7 @@ def view_change_in_results(precision_recall_k_values = [5, 10, 15, 20]):
         mf1_avg_precision = sum(mf1_precisions)/len(mf1_precisions)
         mf1_avg_recall = sum(mf1_recalls)/len(mf1_recalls)
         mf1_avg_F1 = sum(mf1_F1_list)/len(mf1_F1_list)
-
+        
         results = []
         results.append([0, 0, mf1_mse, mf1_mae, mf1_avg_precision, mf1_avg_recall, mf1_avg_F1])
 
@@ -77,15 +73,15 @@ def view_change_in_results(precision_recall_k_values = [5, 10, 15, 20]):
             model, categorical_movies = load_NN_and_movie_lists(get_NN_model_location(test_percentage))
 
             # For every k value (obfuscation percentage), generate the rmse 
-            for k in k_values:
+            for k in options.k_values:
                 print("Retrieving MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))   
-                _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_user_ids, categorical_movies, k)
+                _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
 
                 mf2 = get_rating_predictor_using_obscured_data(dataset.MF_training_x, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=False)
                 mf2_mse = mf2.mse(dataset.MF_testing_x)
                 mf2_mae = mf2.mae(dataset.MF_testing_x)
-                mf2_precisions, mf2_recalls, mf2_F1_list = mf2.precision_and_recall_at_k(dataset.MF_testing_x, k=precision_recall_k)
 
+                mf2_precisions, mf2_recalls, mf2_F1_list = mf2.precision_and_recall_at_k(dataset.MF_testing_x, k=precision_recall_k)
                 mf2_avg_precision = sum(mf2_precisions)/len(mf2_precisions)
                 mf2_avg_recall = sum(mf2_recalls)/len(mf2_recalls)
                 mf2_avg_F1 = sum(mf2_F1_list)/len(mf2_F1_list)
@@ -129,10 +125,10 @@ if __name__ == "__main__":
             model, categorical_movies = load_NN_and_movie_lists(get_NN_model_location(test_percentage))
 
             # For every k value (obfuscation percentage), generate the rmse 
-            for k in k_values:
+            for k in options.k_values:
 
                 print("Retrieving Obfuscated User Item Matrix to train Matrix Factorization Recommender...")
-                _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_user_ids, categorical_movies, k)
+                _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
                 
                 print("\nTraining MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))
                 get_rating_predictor_using_obscured_data(dataset.MF_training_x, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=True, skip_already_trained=True)
