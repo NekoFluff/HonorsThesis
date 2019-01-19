@@ -8,7 +8,7 @@ import options
 
 from data_train_test import load_dataset
 from rating_predictor import get_rating_predictor_using_training_data
-from attribute_inference_NN import get_NN_model_location
+from attribute_inference_NN import get_NN_model_location, auc
 
 # Define function, assuming data is all available
 def select_movies(user_movies, k, movies_list, strategy = 'random', print_selected_movie=False):
@@ -186,7 +186,7 @@ def test_NN_with_user(model, user_vector, user_attribute, categorical_movies, ch
 
     print("\n","#"*100,"\n")
 
-def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, chosen_k):
+def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, test_percentage, chosen_k):
     ''' Evaluate on test set without obfuscation and with obfuscation
 
     k: The percentage of movies to add (obfuscation)
@@ -288,7 +288,14 @@ def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies,
     print("Obfuscated Accuracy (using evaluate function):", obfuscated_acc)
     print("Obfuscated Loss (using evaluate function):", obfuscated_loss)
 
-    return non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, modified_user_item_matrix #(non_obfuscated_result, obfuscated_result)
+
+    non_obfuscated_predicted_attributes = model.predict(test_ratings)
+    non_obfuscated_auc_micro, non_obfuscated_auc_macro = auc(test_labels, non_obfuscated_predicted_attributes, test_percentage, chosen_k)
+
+    obfuscated_predicted_attributes = model.predict(np.array(test_ratings_obfuscated))
+    obfuscated_auc_micro, obfuscated_auc_macro = auc(test_labels, obfuscated_predicted_attributes, test_percentage, chosen_k)
+
+    return non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, non_obfuscated_auc_micro, non_obfuscated_auc_macro, obfuscated_auc_micro, obfuscated_auc_macro, modified_user_item_matrix #(non_obfuscated_result, obfuscated_result)
 
 if __name__ == "__main__":
 
@@ -301,6 +308,12 @@ if __name__ == "__main__":
         non_obfuscated_accuracies = []
         obfuscated_losses = []
         obfuscated_accuracies = []
+
+        non_obfuscated_auc_micros = []
+        non_obfuscated_auc_macros = []
+        obfuscated_auc_micros = []
+        obfuscated_auc_macros = []
+
         for test_percentage in options.TEST_PERCENTAGES:
             # Load model for every dataset
             dataset = load_dataset(test_percentage)
@@ -309,7 +322,9 @@ if __name__ == "__main__":
             saved_model_location = get_NN_model_location(test_percentage)
             model, categorical_movies = load_NN_and_movie_lists(saved_model_location)
 
-            non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
+            non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, non_obfuscated_auc_micro, non_obfuscated_auc_macro, obfuscated_auc_micro, obfuscated_auc_macro, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, test_percentage, k)
+
+            
             del model, categorical_movies
             tf.keras.backend.clear_session()
 
@@ -318,9 +333,13 @@ if __name__ == "__main__":
             obfuscated_losses.append(obfuscated_loss)
             obfuscated_accuracies.append(obfuscated_acc)
             
+            non_obfuscated_auc_micros.append(non_obfuscated_auc_micro)
+            non_obfuscated_auc_macros.append(non_obfuscated_auc_macro)
+            obfuscated_auc_micros.append(obfuscated_auc_micro)
+            obfuscated_auc_macros.append(obfuscated_auc_macro)
             
         # Evaluated on test set without obfuscation and with k% obfuscation
-        results = np.array([options.TEST_PERCENTAGES, non_obfuscated_losses, obfuscated_losses, non_obfuscated_accuracies, obfuscated_accuracies])
+        results = np.array([options.TEST_PERCENTAGES, non_obfuscated_losses, obfuscated_losses, non_obfuscated_accuracies, obfuscated_accuracies, non_obfuscated_auc_micros, non_obfuscated_auc_macros, obfuscated_auc_micros, obfuscated_auc_macros])
 
         print('-' * 100)
         print("[First row is test percentages]")
@@ -328,6 +347,11 @@ if __name__ == "__main__":
         print("[Third row is obfuscated_losses]")
         print("[Fourth row is non_obfuscated_accuracies]")
         print("[Fifth row is obfuscated_accuracies]")
+
+        print("[Sixth row is non_obfuscated_auc_micros]")
+        print("[Seventh row is non_obfuscated_auc_macros]")
+        print("[Eigth row is obfuscated_auc_micros]")
+        print("[Ninth row is obfuscated_auc_macros]")
 
         print(results)
         if k < 1:

@@ -1,5 +1,4 @@
 import numpy as np
-import options
 
 # Code was taken from:
 # http://www.albertauyeung.com/post/python-matrix-factorization/
@@ -147,95 +146,6 @@ class MF():
 
         F1_list = [2 * (p * r) / (p + r) if p + r > 0 else 0 for p, r in zip(user_precision_list, user_recall_list) ]
         return (user_precision_list, user_recall_list, F1_list)
-
-    def auc(self, comparison_matrix, test_percentage, k):
-        ################
-        # Taken from https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
-        ################
-        from sklearn.metrics import roc_curve, auc
-        import matplotlib.pyplot as plt
-        from scipy import interp
-        from itertools import cycle
-
-        y_score = self.full_matrix()
-        y_test = comparison_matrix
-        n_classes = y_score.shape[1]
-
-        # Compute ROC curve and ROC area for each class
-        fpr = dict()
-        tpr = dict()
-        roc_auc = dict()
-        for i in range(n_classes):
-            fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i]) # Compute the curve (get false positive rate and true positive rates)
-            roc_auc[i] = auc(fpr[i], tpr[i]) # Compute the area under the curve (x-axis is fpr, y-axis is tpr)
-
-        fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
-        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-
-        ##############################################################################
-        # Plot of a ROC curve for a specific class
-        plt.figure()
-        lw = 2
-        plt.plot(fpr[2], tpr[2], color='darkorange',
-                lw=lw, label='ROC curve (area = %0.2f)' % roc_auc[2])
-        plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic example')
-        plt.legend(loc="lower right")
-        plt.show()
-
-        ##############################################################################
-        # Plot ROC curves for the multiclass problem
-
-        # Compute macro-average ROC curve and ROC area
-
-        # First aggregate all false positive rates
-        all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
-
-        # Then interpolate all ROC curves at this points
-        mean_tpr = np.zeros_like(all_fpr)
-        for i in range(n_classes):
-            mean_tpr += interp(all_fpr, fpr[i], tpr[i]) # Guess y values given fpr (x-values) and tpr(y-values)
-
-        # Finally average it and compute AUC
-        mean_tpr /= n_classes
-
-        fpr["macro"] = all_fpr
-        tpr["macro"] = mean_tpr
-        roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
-
-        # Plot all ROC curves
-        plt.figure()
-        plt.plot(fpr["micro"], tpr["micro"],
-                label='micro-average ROC curve (area = {0:0.2f})'
-                    ''.format(roc_auc["micro"]),
-                color='deeppink', linestyle=':', linewidth=4)
-
-        plt.plot(fpr["macro"], tpr["macro"],
-                label='macro-average ROC curve (area = {0:0.2f})'
-                    ''.format(roc_auc["macro"]),
-                color='navy', linestyle=':', linewidth=4)
-
-        colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-        for i, color in zip(range(n_classes), colors):
-            plt.plot(fpr[i], tpr[i], color=color, lw=lw,
-                    label='ROC curve of class {0} (area = {1:0.2f})'
-                    ''.format(i, roc_auc[i]))
-
-        plt.plot([0, 1], [0, 1], 'k--', lw=lw)
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Reciever Operating Characteristic')
-        plt.legend(loc="lower right")
-        plt.savefig(options.plots_folder + 'ROC_test{:.2f}%_{:.2f}k_obfuscation.png'.format(test_percentage, k))
-
-        plt.show()
-        return roc_auc["micro"], roc_auc["macro"]
 
     def sgd(self):
         """

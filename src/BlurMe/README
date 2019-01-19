@@ -47,3 +47,24 @@ HOW OBFUSCATION WORKS:
 8. Once we have determined which class/attribute list to look at, we use a 'greedy' approach and select the k-highest scored movies in that class/attribute
 9. This movie is then given the 'average' rating or 'predicted' rating (predicted rating is obtained from Matrix Factorization with training data)
 10. Repeat until k movies have been selected and the user's class/attribute has been so-called 'obfusacated'
+
+-----------------------------------------------------------------------------------------------------------
+
+HOW TO READ RESULTS:
+For the attribute_inference_NN_XX.XXk_obfuscation.out files:
+
+First row is test percentages
+Second row is non_obfuscated_losses
+Third row is obfuscated_losses
+Fourth row is non_obfuscated_accuracies
+Fifth row is obfuscated_accuracies
+Sixth row is non_obfuscated_auc_micros
+Seventh row is non_obfuscated_auc_macros
+Eigth row is obfuscated_auc_micros
+Ninth row is obfuscated_auc_macros
+
+For the matrix_factorization_recommender_results_kXX.out files:
+Data is to be read column-wise as:
+['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1', 'mf2_auc_micro', 'mf2_auc_macro'])
+
+-----------------------------------------------------------------------------------------------------------

@@ -61,10 +61,9 @@ def view_change_in_results():
         mf1_avg_precision = sum(mf1_precisions)/len(mf1_precisions)
         mf1_avg_recall = sum(mf1_recalls)/len(mf1_recalls)
         mf1_avg_F1 = sum(mf1_F1_list)/len(mf1_F1_list)
-        mf1_auc_micro, mf1_auc_macro = mf1.auc(dataset.MF_testing, 0, 0)
 
         results = []
-        results.append([0, 0, mf1_mse, mf1_mae, mf1_avg_precision, mf1_avg_recall, mf1_avg_F1, mf1_auc_micro, mf1_auc_macro])
+        results.append([0, 0, mf1_mse, mf1_mae, mf1_avg_precision, mf1_avg_recall, mf1_avg_F1])
 
         # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
         for test_percentage in options.TEST_PERCENTAGES: 
@@ -76,7 +75,7 @@ def view_change_in_results():
             # For every k value (obfuscation percentage), generate the rmse 
             for k in options.k_values:
                 print("Retrieving MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))   
-                _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
+                _, _, _, _, _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, test_percentage, k)
 
                 mf2 = get_rating_predictor_using_obscured_data(dataset.MF_training, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=False)
                 mf2_mse = mf2.mse(dataset.MF_testing)
@@ -86,12 +85,11 @@ def view_change_in_results():
                 mf2_avg_precision = sum(mf2_precisions)/len(mf2_precisions)
                 mf2_avg_recall = sum(mf2_recalls)/len(mf2_recalls)
                 mf2_avg_F1 = sum(mf2_F1_list)/len(mf2_F1_list)
-                mf2_auc_micro, mf2_auc_macro = mf2.auc(dataset.MF_testing, test_percentage, k)
 
                 print("MF2 RMSE - MF1 RMSE = {}".format(mf2_mse - mf1_mse))    
                 print("MF2 MAE - MF1 MAE = {}".format(mf2_mae - mf1_mae))    
                 
-                results.append([test_percentage, k, mf2_mse, mf2_mae, mf2_avg_precision, mf2_avg_recall, mf2_avg_F1, mf2_auc_micro, mf2_auc_macro])
+                results.append([test_percentage, k, mf2_mse, mf2_mae, mf2_avg_precision, mf2_avg_recall, mf2_avg_F1])
                 np_results = np.array(results)
 
             # Delete the model after you're done with it
@@ -130,7 +128,7 @@ if __name__ == "__main__":
             for k in options.k_values:
 
                 print("Retrieving Obfuscated User Item Matrix to train Matrix Factorization Recommender...")
-                _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
+                _, _, _, _, _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, test_percentage, k)
                 
                 print("\nTraining MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))
                 get_rating_predictor_using_obscured_data(dataset.MF_training, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=True, skip_already_trained=True)
