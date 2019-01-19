@@ -111,10 +111,9 @@ class user_item_loader(object):
 
         ###################################
         # For Matrix Factorization
-        self.MF_training_x = self.user_item_matrix
-        self.MF_training_y = self.user_jobs if options.inference_target == 'job' else self.user_ages if options.inference_target == 'age' else self.user_genders
-        self.MF_testing_x = data_matrix # The original matrix with K more reviews
-        self.MF_testing_y = self.MF_training_y # Should be the same as MF_training_y
+        self.MF_training = self.user_item_matrix
+        self.target_attribute = self.user_jobs if options.inference_target == 'job' else self.user_ages if options.inference_target == 'age' else self.user_genders
+        self.MF_testing = data_matrix # The original matrix with K more reviews
         ###################################
 
     def __len__(self):
@@ -170,7 +169,7 @@ def load_dataset(test_percentage):
 
     # If the data hasn't already been generated before, then create it
     if not os.path.exists(NN_TRAINING_TESTING_FOLDER):
-        dataset.split_training_testing_for_NN(dataset.MF_training_x, dataset.MF_training_y, test_percentage)
+        dataset.split_training_testing_for_NN(dataset.MF_training, dataset.target_attribute, test_percentage)
         os.makedirs(NN_TRAINING_TESTING_FOLDER)
 
         dataset.save_training_and_testing_split_for_NN(NN_TRAINING_TESTING_FOLDER)

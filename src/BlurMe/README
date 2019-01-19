@@ -22,6 +22,7 @@ SECOND, run attribute_obfuscation.py. This will generate results in a results fo
 THIRD, run rating_predictor.py. This will generate more results in the same results folder. 
     - (Stats on Matrix Factorization recommender before and after obfuscation.)
     - latent_matrix_dimension can be set (default 128) for Matrix Factorization in options.py
+    - By default it performs 100 iterations of training per matrix factorization recommender. This can be modified in options.py
     - RMSE, MAE, precision@k, recall@k, F1@k
     - NOTE: This is the longest process since it takes a long period of time to train the Matrix Factorization for each obfuscated test set, obfuscated at different levels
 -----------------------------------------------------------------------------------------------------------

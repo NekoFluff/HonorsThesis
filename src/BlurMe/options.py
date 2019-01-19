@@ -2,7 +2,7 @@ import os
 ##################################
 # Obfuscation options:
 ##################################
-inference_target = 'age' # 'gender', 'age', or 'job'
+inference_target = 'job' # 'gender', 'age', or 'job'
 average_or_predicted_ratings = 'average' #'predicted' or 'average'
 chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
 
@@ -11,7 +11,8 @@ chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
 ##################################
 results_folder = './{}_rating_results/'.format(average_or_predicted_ratings)
 model_folder = './models/'
-MF_results_folder = results_folder + '/MF_{}'.format(inference_target)
+MF_results_folder = results_folder + '/MF_{}/'.format(inference_target)
+plots_folder = results_folder + '/plots/'
 
 if not os.path.isdir(results_folder):
     os.mkdir(results_folder)
@@ -21,6 +22,9 @@ if not os.path.isdir(model_folder):
 
 if not os.path.isdir(MF_results_folder):
     os.mkdir(MF_results_folder)
+
+if not os.path.isdir(plots_folder):
+    os.mkdir(plots_folder)
 
 ##################################
 # Data options:

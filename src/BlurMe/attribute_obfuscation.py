@@ -149,7 +149,7 @@ def load_NN_and_movie_lists(model_save_path):
 
 def test_NN_with_user(model, user_vector, user_attribute, categorical_movies, chosen_k):
     dataset = load_dataset(0)
-    mf = get_rating_predictor_using_training_data(dataset.MF_training_x)
+    mf = get_rating_predictor_using_training_data(dataset.MF_training)
 
     '''
     k: The percentage of movies to add (obfuscation)
@@ -211,7 +211,7 @@ def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies,
     #     return
         
     test_ratings_obfuscated = [] # Does not include user ids 
-    mf = get_rating_predictor_using_training_data(dataset.MF_training_x)
+    mf = get_rating_predictor_using_training_data(dataset.MF_training)
 
     for user_index, user_vector in enumerate(test_ratings):
         user_id = test_user_ids[user_index]

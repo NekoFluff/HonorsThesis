@@ -54,16 +54,17 @@ def view_change_in_results():
 
         dataset = load_dataset(0)
 
-        mf1 = get_rating_predictor_using_training_data(training_data=dataset.MF_training_x, training_enabled=False)
-        mf1_mse = mf1.mse(dataset.MF_testing_x)
-        mf1_mae = mf1.mae(dataset.MF_testing_x)
-        mf1_precisions, mf1_recalls, mf1_F1_list = mf1.precision_and_recall_at_k(dataset.MF_testing_x, k=precision_recall_k)
+        mf1 = get_rating_predictor_using_training_data(training_data=dataset.MF_training, training_enabled=False)
+        mf1_mse = mf1.mse(dataset.MF_testing)
+        mf1_mae = mf1.mae(dataset.MF_testing)
+        mf1_precisions, mf1_recalls, mf1_F1_list = mf1.precision_and_recall_at_k(dataset.MF_testing, k=precision_recall_k)
         mf1_avg_precision = sum(mf1_precisions)/len(mf1_precisions)
         mf1_avg_recall = sum(mf1_recalls)/len(mf1_recalls)
         mf1_avg_F1 = sum(mf1_F1_list)/len(mf1_F1_list)
-        
+        mf1_auc_micro, mf1_auc_macro = mf1.auc(dataset.MF_testing, 0, 0)
+
         results = []
-        results.append([0, 0, mf1_mse, mf1_mae, mf1_avg_precision, mf1_avg_recall, mf1_avg_F1])
+        results.append([0, 0, mf1_mse, mf1_mae, mf1_avg_precision, mf1_avg_recall, mf1_avg_F1, mf1_auc_micro, mf1_auc_macro])
 
         # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
         for test_percentage in options.TEST_PERCENTAGES: 
@@ -77,19 +78,20 @@ def view_change_in_results():
                 print("Retrieving MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))   
                 _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
 
-                mf2 = get_rating_predictor_using_obscured_data(dataset.MF_training_x, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=False)
-                mf2_mse = mf2.mse(dataset.MF_testing_x)
-                mf2_mae = mf2.mae(dataset.MF_testing_x)
+                mf2 = get_rating_predictor_using_obscured_data(dataset.MF_training, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=False)
+                mf2_mse = mf2.mse(dataset.MF_testing)
+                mf2_mae = mf2.mae(dataset.MF_testing)
 
-                mf2_precisions, mf2_recalls, mf2_F1_list = mf2.precision_and_recall_at_k(dataset.MF_testing_x, k=precision_recall_k)
+                mf2_precisions, mf2_recalls, mf2_F1_list = mf2.precision_and_recall_at_k(dataset.MF_testing, k=precision_recall_k)
                 mf2_avg_precision = sum(mf2_precisions)/len(mf2_precisions)
                 mf2_avg_recall = sum(mf2_recalls)/len(mf2_recalls)
                 mf2_avg_F1 = sum(mf2_F1_list)/len(mf2_F1_list)
+                mf2_auc_micro, mf2_auc_macro = mf2.auc(dataset.MF_testing, test_percentage, k)
 
                 print("MF2 RMSE - MF1 RMSE = {}".format(mf2_mse - mf1_mse))    
                 print("MF2 MAE - MF1 MAE = {}".format(mf2_mae - mf1_mae))    
                 
-                results.append([test_percentage, k, mf2_mse, mf2_mae, mf2_avg_precision, mf2_avg_recall, mf2_avg_F1])
+                results.append([test_percentage, k, mf2_mse, mf2_mae, mf2_avg_precision, mf2_avg_recall, mf2_avg_F1, mf2_auc_micro, mf2_auc_macro])
                 np_results = np.array(results)
 
             # Delete the model after you're done with it
@@ -101,7 +103,7 @@ def view_change_in_results():
 
         print("Saved at Matrix Factorization Factorization Results at " + save_location)
         print("Data is to be read as:")
-        print(['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1'])
+        print(['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1', 'mf2_auc_micro', 'mf2_auc_macro'])
 
         np.savetxt(save_location, np_results)
 
@@ -115,7 +117,7 @@ if __name__ == "__main__":
     from attribute_inference_NN import get_NN_model_location
     
     if generate:
-        get_rating_predictor_using_training_data(load_dataset(0).MF_training_x, training_enabled=True, skip_already_trained=True)
+        get_rating_predictor_using_training_data(load_dataset(0).MF_training, training_enabled=True, skip_already_trained=True)
         
         # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
         for test_percentage in options.TEST_PERCENTAGES: 
@@ -131,7 +133,7 @@ if __name__ == "__main__":
                 _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, k)
                 
                 print("\nTraining MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))
-                get_rating_predictor_using_obscured_data(dataset.MF_training_x, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=True, skip_already_trained=True)
+                get_rating_predictor_using_obscured_data(dataset.MF_training, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=True, skip_already_trained=True)
 
 
         view_change_in_results()
