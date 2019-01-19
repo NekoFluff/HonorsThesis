@@ -97,7 +97,7 @@ def view_change_in_results():
 
         print(np_results)
 
-        save_location = options.MF_results_folder + "/matrix_factorization_recommender_results_k{}.out".format(precision_recall_k)
+        save_location = options.MF_results_folder + "/matrix_factorization_recommender_results_precision{}k.out".format(precision_recall_k)
 
         print("Saved at Matrix Factorization Factorization Results at " + save_location)
         print("Data is to be read as:")

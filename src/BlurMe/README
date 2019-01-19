@@ -7,6 +7,8 @@ chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
 
 Adjust as necessary. Once you have chosen your settings follow these next steps:
 -----------------------------------------------------------------------------------------------------------
+
+HOW TO USE
 FIRST, run attribute_inference_NN.py to generate the Neural Networks. One neural network will be generated per TEST_PERCENTAGE (in options.py) since each neural network will be trained with a different percentage of the training data, chosen at random.
 
 Information about the neural network:
@@ -51,7 +53,7 @@ HOW OBFUSCATION WORKS:
 -----------------------------------------------------------------------------------------------------------
 
 HOW TO READ RESULTS:
-For the attribute_inference_NN_XX.XXk_obfuscation.out files:
+For the attributeX_inference_NN_XX.XXk_obfuscation.out files:
 
 First row is test percentages
 Second row is non_obfuscated_losses
@@ -63,8 +65,32 @@ Seventh row is non_obfuscated_auc_macros
 Eigth row is obfuscated_auc_micros
 Ninth row is obfuscated_auc_macros
 
-For the matrix_factorization_recommender_results_kXX.out files:
+For the matrix_factorization_recommender_results_precisionXk.out files:
 Data is to be read column-wise as:
 ['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1', 'mf2_auc_micro', 'mf2_auc_macro'])
 
+-----------------------------------------------------------------------------------------------------------
+
+DETAILS ON HOW THE NEURAL NETWORK AND MATRIX FACTORIZATION ARE TRAINED
+
+First the dataset is split in two parts where one part doesn't contain the K (default K=10... can be changed in options.py) most recent movies and the other part does.
+Let's call the part which doesnn't contain the K most recent reviews X1 and the part which does Y1.
+X1 will be used to train the ORIGINAL (non-obfuscated) Matrix Factorization Recommenderand Y1 will be used to test the Matrix Factoriztion Recommender
+
+After this split, we look at what kind of attribute we want to infer and what % users we want to split X1 for testing. 
+Given 943 users in X1 with 5% testing, there will be 47 users in the test set. At 10% testing there will be 94 users in the test set. The remaining 100% - testing are added in the training set.
+It should be noted that the data is shuffled before this user test% split.
+With this user split in X1, we also use the corresponding user attribute labels as the expected output of the NN.
+Let's call the the training set for the NN A1 and the testing set B1. 
+Both A1 and B1 consist of (user ratings without 10 most recent ratings [input], expected user attribute [output]) pairs
+
+Afterwards, A1 will be used to train the NN.
+B1 will be used to test the NN.
+B1 will be both non-obfuscated and obfuscated with each value in k_values (can be changed in options.py. By default it's 30, 35, 40, 45) and results will be stored in attributeX_inference_NN_XX.XXk_obfuscation.out. 
+
+Afterwards we want to see the impact of obfuscation on the Matrix Factorzation Recommender
+We still test on Y1, BUT we train on X1 with obfuscated ratings. 
+These obfuscated ratings are either the 'average' movie rating or 'predicted' from the ORIGINAL (non-obfuscated) Matrix Factorization Recommender. More details in HOW OBFUSCATION WORKS section.
+The results of each matrix factorization is stored in the reuslts folder with MF_{corresponding attribute} in a file matrix_factorization_recommender_results_precisionXk.out
+In order to read this, refer to the HOW TO READ RESULTS section
 -----------------------------------------------------------------------------------------------------------

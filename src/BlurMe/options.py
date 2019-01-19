@@ -29,10 +29,11 @@ if not os.path.isdir(plots_folder):
 ##################################
 # Data options:
 ##################################
+K = 10  # K most recent reviews
 NUM_ITEMS = 1682
 TEST_PERCENTAGES = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30] # Percentage of users to have in the test set
 #k_values = [0.01, 0.05, 0.10, 0.15, 0.20, 25, 30, 35, 40, 45, 50] # If k < 1, then it is a percentage addition. Otherwise it is a flat addition of movies in order to obfuscate user attributes
-k_values = [30, 40, 45]
+k_values = [30, 35, 40, 45]
 precision_at_k_values = [35]
 
 NUM_GENDER_CLASSES = 2 # Male and female
