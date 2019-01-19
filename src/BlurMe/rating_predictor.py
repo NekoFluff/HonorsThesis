@@ -101,7 +101,7 @@ def view_change_in_results():
 
         print("Saved at Matrix Factorization Factorization Results at " + save_location)
         print("Data is to be read as:")
-        print(['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1', 'mf2_auc_micro', 'mf2_auc_macro'])
+        print(['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1'])
 
         np.savetxt(save_location, np_results)
 

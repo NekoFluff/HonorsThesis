@@ -67,7 +67,7 @@ Ninth row is obfuscated_auc_macros
 
 For the matrix_factorization_recommender_results_precisionXk.out files:
 Data is to be read column-wise as:
-['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1', 'mf2_auc_micro', 'mf2_auc_macro'])
+['test_percentage', 'k (obfuscation percent)', 'mf2_mse', 'mf2_mae', 'mf2_avg_precision', 'mf2_avg_recall', 'mf2_avg_F1'])
 
 -----------------------------------------------------------------------------------------------------------
 

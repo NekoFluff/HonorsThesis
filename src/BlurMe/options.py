@@ -2,7 +2,7 @@ import os
 ##################################
 # Obfuscation options:
 ##################################
-inference_target = 'job' # 'gender', 'age', or 'job'
+inference_target = 'age' # 'gender', 'age', or 'job'
 average_or_predicted_ratings = 'average' #'predicted' or 'average'
 chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
 
