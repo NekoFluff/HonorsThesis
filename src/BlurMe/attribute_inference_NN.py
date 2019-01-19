@@ -4,41 +4,14 @@ import pandas as pd
 import os
 import numpy as np
 from datetime import datetime
+import options
 
-from data_train_test import dataset
-
-###############################################
-#  Initialize the variables and retrieve the data
-###############################################
-TRAINING_BATCH_SIZE = 32
-TEST_PERCENTAGES = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30] # Percentage of users to have in the test set
-NUM_ITEMS = 1682
-EPOCHS = 10
-model_folder = './models/'
+from data_train_test import load_dataset
 
 
-def split_data(test_percentage = 0.20):
-    '''
-    Returns (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids, test_user_ids)
-    '''
-    NN_TRAINING_TESTING_FOLDER = './NN_train_test_data/{:.2f}_split/'.format(test_percentage)
-
-    # If the data hasn't already been generated before, then create it
-    if not os.path.exists(NN_TRAINING_TESTING_FOLDER):
-        os.makedirs(NN_TRAINING_TESTING_FOLDER)
-        data = dataset.split_training_testing_for_NN(dataset.MF_training_x, dataset.MF_training_y, test_percentage)
-        dataset.save_training_and_testing_split_for_NN(NN_TRAINING_TESTING_FOLDER)
-    
-    # Otherwise load the saved data
-    else: 
-        dataset.load_training_and_testing_split_for_NN(NN_TRAINING_TESTING_FOLDER)
-        data = dataset.get_training_testing_for_NN()
-
-    return data
 
 def get_NN_model_location(test_percentage):
-    return model_folder + '/gender_inference_NN_{:.2f}_split.h5'.format(test_percentage)
-        
+    return options.model_folder + '/{}_inference_NN_{:.2f}_split.h5'.format(options.inference_target, test_percentage)
 
 ###############################################
 #  Build the model
@@ -49,13 +22,13 @@ def build_model():
     '''
     # Input layers
     user_input_layer = keras.layers.Input(
-        name='user_input_layer', shape=[NUM_ITEMS])
+        name='user_input_layer', shape=[options.NUM_ITEMS])
 
     hidden_layer = keras.layers.Dense(30000,
                                       name='hidden_layer', activation='relu')(user_input_layer)
 
     # Reshape to be a single number (shape will be (None, 1))
-    output_layer = keras.layers.Dense(2, activation='softmax')(hidden_layer)
+    output_layer = keras.layers.Dense(options.NUM_CLASSES, activation='softmax')(hidden_layer)
 
     model = keras.models.Model(
         inputs=[user_input_layer], outputs=[output_layer])
@@ -72,9 +45,9 @@ def build_model():
 ###############################################
 if __name__ == "__main__":
 
-    for test_percentage in TEST_PERCENTAGES:
+    for test_percentage in options.TEST_PERCENTAGES:
         (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids,
-                                                                    test_user_ids) = split_data(test_percentage=test_percentage)
+                                                                    test_user_ids) = load_dataset(test_percentage).get_training_testing_for_NN()
         model = build_model()
 
         ###############################################
@@ -95,18 +68,18 @@ if __name__ == "__main__":
         results = model.evaluate(test_ratings, test_labels)
 
         print('-'*100)
-        print("Gender inference results prior to training (Test Data)\nLoss: {}\nAccuracy: {}".format(
-            results[0], results[1]))
+        print("{} Attribute inference results prior to training (Test Data)\nLoss: {}\nAccuracy: {}".format(
+            options.inference_target, results[0], results[1]))
         print('-'*100)
 
         # Then TRAIN
-        training_history = model.fit(train_ratings, train_labels, epochs=EPOCHS, batch_size=TRAINING_BATCH_SIZE, validation_data=(test_ratings, test_labels), verbose=1, callbacks=[])
+        training_history = model.fit(train_ratings, train_labels, epochs=options.EPOCHS, batch_size=options.TRAINING_BATCH_SIZE, validation_data=(test_ratings, test_labels), verbose=1, callbacks=[])
 
         # Then Observe if there was an improvement
         results = model.evaluate(test_ratings, test_labels)
         print('-'*100)
-        print("Gender inference results after training (Test Data)\nLoss: {}\nAccuracy: {}".format(
-            results[0], results[1]))
+        print("{} Attribute inference results after training (Test Data)\nLoss: {}\nAccuracy: {}".format(
+            options.inference_target, results[0], results[1]))
         print('-'*100)
 
         ###############################################
@@ -114,8 +87,8 @@ if __name__ == "__main__":
         ###############################################
         model_save_path = get_NN_model_location(test_percentage)
         # Save entire model to a HDF5 file
-        if not os.path.exists(model_folder):
-            os.makedirs(model_folder)
+        if not os.path.exists(options.model_folder):
+            os.makedirs(options.model_folder)
 
         model.save(model_save_path)
 

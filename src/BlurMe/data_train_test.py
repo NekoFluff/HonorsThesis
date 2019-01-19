@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 import os
+import options
+
 
 # make data matrix (user X items)
 K = 10  # K most recent reviews
@@ -79,30 +81,50 @@ with open('ml-100k/u.user', 'r') as fin:
 
 # define data loader here
 class user_item_loader(object):
-    def __init__(self, user_item_matrix, user_info):
-        self.user_item_matrix = user_item_matrix
+    def __init__(self):
+        '''
+        inference_target: 'age', 'gender', or 'job'. Each option will modify the training_y
+        '''
+        self.user_item_matrix = data_matrix_train # Without k most recent ratings
+        self.user_item_averages = np.mean(self.user_item_matrix, axis=0) # Column averages
+
         self.user_info = user_info
         self.user_genders = [v['gender'] for k, v in self.user_info.items()]
+        self.user_ages = [0 if v['age'] > 45 else 1 if v['age'] < 35 else 2 for k, v in self.user_info.items()] # [Over 45, Below or 35, Over or Equal 35 & Below or Equal 45] - > [0, 1, 2]
+        
+        # Integer encode the occupations
+        from sklearn.preprocessing import LabelEncoder
+        label_encoder = LabelEncoder()
+        temp = label_encoder.fit_transform([v['occupation'] for k, v in self.user_info.items()])
+        self.user_jobs = [int(i) for i in temp]
+        # Check transformed data to make sure it correlates correctly
+        self.numerical_user_ages = [v['age'] for k, v in self.user_info.items()]
+        self.worded_user_jobs = [v['occupation'] for k, v in self.user_info.items()]
+
+        print("Sample Original User Ages:", self.numerical_user_ages[:10])
+        print("Sample User Ages (translated for NN):", self.user_ages[:10])
+        print("Sample Original User Jobs:", self.worded_user_jobs[:10])
+        print("Sample User Jobs (translated for NN):", self.user_jobs[:10])
+
+        print("Max value for age: ", max(self.user_ages))
+        print("Max value for jobs: ", max(self.user_jobs))
+
         ###################################
         # For Matrix Factorization
         self.MF_training_x = self.user_item_matrix
-        self.MF_training_y = self.user_genders
+        self.MF_training_y = self.user_jobs if options.inference_target == 'job' else self.user_ages if options.inference_target == 'age' else self.user_genders
         self.MF_testing_x = data_matrix # The original matrix with K more reviews
-        self.MF_testing_y = self.user_genders # Should be the same as MF_training_y
+        self.MF_testing_y = self.MF_training_y # Should be the same as MF_training_y
         ###################################
 
     def __len__(self):
         return self.user_item_matrix.shape[0]
 
-    def __getitem__(self, ind):
-        # return (user vector, user ID)
-        return (self.user_item_matrix[ind, :], self.user_ids[ind])
-
     def split_training_testing_for_NN(self, training_x, training_y, test_sample_percentage):
         '''Create a testing set from the training set
         '''
         num_test_samples = int(test_sample_percentage*len(training_x))
-
+        print("Number of test samples:", num_test_samples)
         train_all = [(i, training_x[i], training_y[i]) for i in range(len(training_x))]
 
         #################################################
@@ -111,14 +133,16 @@ class user_item_loader(object):
         test_portion = train_all[:num_test_samples]
         train_portion = train_all[num_test_samples:]
 
-        self.NN_test_user_ids, self.NN_testing_x, self.NN_testing_y = zip(*test_portion)
-        self.NN_test_user_ids, self.NN_testing_x, self.NN_testing_y = np.array(self.NN_test_user_ids),  np.array(self.NN_testing_x),  np.array(self.NN_testing_y)
+        self.NN_test_user_ids, self.NN_testing_x, self.NN_testing_y = zip(*test_portion) if num_test_samples > 0 else (None, None, None)
+        self.NN_test_user_ids, self.NN_testing_x, self.NN_testing_y = (np.array(self.NN_test_user_ids),  np.array(self.NN_testing_x),  np.array(self.NN_testing_y)) if num_test_samples > 0 else (None, None, None)
+        
         self.NN_train_user_ids, self.NN_training_x, self.NN_training_y = zip(*train_portion)
+
         self.NN_train_user_ids, self.NN_training_x, self.NN_training_y =  np.array(self.NN_train_user_ids),  np.array(self.NN_training_x),  np.array(self.NN_training_y)
         ###################################################
 
         return (self.NN_training_x, self.NN_training_y), (self.NN_testing_x, self.NN_testing_y), (self.NN_train_user_ids, self.NN_test_user_ids)
-    
+
     def get_training_testing_for_NN(self):
         return (self.NN_training_x, self.NN_training_y), (self.NN_testing_x, self.NN_testing_y), (self.NN_train_user_ids, self.NN_test_user_ids)
 
@@ -139,4 +163,23 @@ class user_item_loader(object):
         self.NN_test_user_ids = np.load(folder_location+"/NN_testing_user_ids.npy") 
          
 # Dataset for use in other files
-dataset = user_item_loader(data_matrix_train, user_info)
+def load_dataset(test_percentage):
+    dataset = user_item_loader()
+
+    NN_TRAINING_TESTING_FOLDER = './NN_train_test_data/{}/{:.2f}_split/'.format(options.inference_target, test_percentage)
+
+    # If the data hasn't already been generated before, then create it
+    if not os.path.exists(NN_TRAINING_TESTING_FOLDER):
+        dataset.split_training_testing_for_NN(dataset.MF_training_x, dataset.MF_training_y, test_percentage)
+        os.makedirs(NN_TRAINING_TESTING_FOLDER)
+
+        dataset.save_training_and_testing_split_for_NN(NN_TRAINING_TESTING_FOLDER)
+    
+    # Otherwise load the saved data
+    else: 
+        dataset.load_training_and_testing_split_for_NN(NN_TRAINING_TESTING_FOLDER)
+
+    return dataset
+
+if __name__ == "__main__":
+    dataset = load_dataset(test_percentage=0.0)

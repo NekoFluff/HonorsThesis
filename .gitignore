@@ -2,6 +2,6 @@
 src/recommendation/tmp/*
 **/tmp
 **/__pycache__
-**/models
-**/NN_train_test_data
-**/results
+**/models*
+**/NN_train_test_data*
+**/*results*

@@ -50,7 +50,7 @@ class MF():
             mse = self.mse(self.R)
             training_process.append((i, mse))
             if (i+1) % 5 == 0:
-                print("Iteration: %d ; error = %.4f" % (i+1, mse))
+                print("Iteration: %d ; RMSE = %.4f" % (i+1, mse))
 
         return training_process
 
@@ -109,7 +109,7 @@ class MF():
             print("Predicted Movie Ratings (First 5): ", movie_ratings_for_user[:5])
 
             # Find k ratings whose PREDICTED rating is >= 3.5
-            for i in range(k):
+            for i in range(min(k, len(movie_ratings_for_user))):
                 if (movie_ratings_for_user[i][1] >= 3.5):
                     recommended_set.add(movie_ratings_for_user[i][0])
                 else:
