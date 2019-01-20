@@ -4,6 +4,8 @@ Obuscation options include:
 inference_target = 'job' # 'gender', 'age', or 'job'
 average_or_predicted_ratings = 'average' # 'predicted' or 'average'
 chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
+chosen_dataset = 'attriguard' # 'either 'movielens' or attriguard' If attriguard then the only inference target is 'city', which is automatic
+
 
 Adjust as necessary. Once you have chosen your settings follow these next steps:
 -----------------------------------------------------------------------------------------------------------
@@ -13,7 +15,7 @@ FIRST, run attribute_inference_NN.py to generate the Neural Networks. One neural
 
 Information about the neural network:
     - Input is one-hot encoding
-    - Hidden layer is 100 neurons
+    - Hidden layer is 100 neurons (can be changed in options.py)
     - Last layer is softmax
     - Loss function is cross entropy Loss
     - Trained over 17 EPOCHS (set in options.py)
@@ -73,7 +75,7 @@ Data is to be read column-wise as:
 
 DETAILS ON HOW THE NEURAL NETWORK AND MATRIX FACTORIZATION ARE TRAINED
 
-First the dataset is split in two parts where one part doesn't contain the K (default K=10... can be changed in options.py) most recent movies and the other part does.
+First the dataset is split in two parts where one part doesn't contain the K (from k_values... can be changed in options.py) most recent movies and the other part does.
 Let's call the part which doesnn't contain the K most recent reviews X1 and the part which does Y1.
 X1 will be used to train the ORIGINAL (non-obfuscated) Matrix Factorization Recommenderand Y1 will be used to test the Matrix Factoriztion Recommender
 
@@ -82,11 +84,12 @@ Given 943 users in X1 with 5% testing, there will be 47 users in the test set. A
 It should be noted that the data is shuffled before this user test% split.
 With this user split in X1, we also use the corresponding user attribute labels as the expected output of the NN.
 Let's call the the training set for the NN A1 and the testing set B1. 
-Both A1 and B1 consist of (user ratings without 10 most recent ratings [input], expected user attribute [output]) pairs
+Both A1 and B1 consist of (user ratings without K most recent ratings [input], expected user attribute [output]) pairs
 
 Afterwards, A1 will be used to train the NN.
 B1 will be used to test the NN.
-B1 will be both non-obfuscated and obfuscated with each value in k_values (can be changed in options.py. By default it's 30, 35, 40, 45) and results will be stored in attributeX_inference_NN_XX.XXk_obfuscation.out. 
+B1 will be both non-obfuscated and obfuscated with each value in k_values and results will be stored in attributeX_inference_NN_XX.XXk_obfuscation.out. 
+(Once again, k_values can be changed in options.py. If 30 items were removed, then 30 items will be added for obfuscation) 
 
 Afterwards we want to see the impact of obfuscation on the Matrix Factorzation Recommender
 We still test on Y1, BUT we train on X1 with obfuscated ratings. 
