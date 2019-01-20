@@ -24,7 +24,7 @@ def build_model():
     user_input_layer = keras.layers.Input(
         name='user_input_layer', shape=[options.NUM_ITEMS])
 
-    hidden_layer = keras.layers.Dense(1000,
+    hidden_layer = keras.layers.Dense(options.hidden_layer_size,
                                       name='hidden_layer', activation='relu', kernel_regularizer=keras.regularizers.l2(0.01))(user_input_layer)
 
     # Reshape to be a single number (shape will be (None, 1))

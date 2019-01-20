@@ -66,6 +66,7 @@ else:
 # Neural Network Training options:
 ##################################
 TRAINING_BATCH_SIZE = 32
+hidden_layer_size = 1000
 
 if chosen_dataset == 'movielens':
     EPOCHS = 17
