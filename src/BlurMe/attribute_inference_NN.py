@@ -24,7 +24,7 @@ def build_model():
     user_input_layer = keras.layers.Input(
         name='user_input_layer', shape=[options.NUM_ITEMS])
 
-    hidden_layer = keras.layers.Dense(100,
+    hidden_layer = keras.layers.Dense(1000,
                                       name='hidden_layer', activation='relu', kernel_regularizer=keras.regularizers.l2(0.01))(user_input_layer)
 
     # Reshape to be a single number (shape will be (None, 1))
@@ -142,62 +142,80 @@ def auc(y_test, y_score, test_percentage, k):
 ###############################################
 if __name__ == "__main__":
 
-    for test_percentage in options.TEST_PERCENTAGES:
-        (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids,
-                                                                    test_user_ids) = load_dataset(test_percentage).get_training_testing_for_NN()
-        model = build_model()
+    for k in options.k_values:
+        for test_percentage in options.TEST_PERCENTAGES:
+            (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids,
+                                                                        test_user_ids) = load_dataset(test_percentage, k).get_training_testing_for_NN()
+            model = build_model()
 
-        ###############################################
-        #  Compile the model (optimizer, loss, and metrics)
-        ###############################################
-        model.compile(optimizer=tf.train.AdamOptimizer(),
-                    loss='sparse_categorical_crossentropy',
-                    metrics=['accuracy'])
+            ###############################################
+            #  Compile the model (optimizer, loss, and metrics)
+            ###############################################
+            model.compile(optimizer=tf.train.AdamOptimizer(),
+                        loss='sparse_categorical_crossentropy',
+                        metrics=['accuracy'])
 
-        ###############################################
-        #  Train the model
-        ###############################################
-        # Feed the model the training data, with the associated training labels
-        print("Training Shape:", train_ratings.shape)
-        print("Number of labels:", len(train_labels))
+            ###############################################
+            #  Train the model
+            ###############################################
+            # Feed the model the training data, with the associated training labels
+            print("Training Shape:", train_ratings.shape)
+            print("Testing Shape:", test_ratings.shape)
 
-        # Observce the BASELINE
-        results = model.evaluate(test_ratings, test_labels)
+            print("Number of train labels:", len(train_labels))
+            print("Number of test labels:", len(test_labels))
 
-        print('-'*100)
-        print("{} Attribute inference results prior to training (Test Data)\nLoss: {}\nAccuracy: {}".format(
-            options.inference_target, results[0], results[1]))
-        print('-'*100)
+            print("First Test Rating: ", test_ratings[0])
+            print("First test label:", test_labels[0])
 
-        # Then TRAIN
-        training_history = model.fit(train_ratings, train_labels, epochs=options.EPOCHS, batch_size=options.TRAINING_BATCH_SIZE, validation_data=(test_ratings, test_labels), verbose=1, callbacks=[])
+            # Observce the BASELINE
+            results = model.evaluate(test_ratings, test_labels)
 
-        # Then Observe if there was an improvement
-        results = model.evaluate(test_ratings, test_labels)
-        print('-'*100)
-        print("{} Attribute inference results after training (Test Data)\nLoss: {}\nAccuracy: {}".format(
-            options.inference_target, results[0], results[1]))
-        print('-'*100)
-
-        ###############################################
-        #  Save the model
-        ###############################################
-        model_save_path = get_NN_model_location(test_percentage)
-        # Save entire model to a HDF5 file
-        if not os.path.exists(options.model_folder):
-            os.makedirs(options.model_folder)
-
-        model.save(model_save_path)
+            print('-'*100)
+            print("{} Attribute inference results prior to training (Test Data)\nLoss: {}\nAccuracy: {}".format(
+                options.inference_target, results[0], results[1]))
+            print('-'*100)
 
 
-        ###############################################
-        #  Load the model (Just to make sure it saved correctly)
-        ###############################################
-        new_model = keras.models.load_model(model_save_path)
-        # new_model.summary()
-        new_model.compile(optimizer=tf.train.AdamOptimizer(),
-                    loss='sparse_categorical_crossentropy',
-                    metrics=['accuracy'])
+            # early_stopping_enabled = True
+            # early_stopping_monitor = 'val_loss'
+            # early_stopping_min_delta = 0.01
+            # early_stopping_patience = 3 # Number of epochs with no improvement
+            # early_stopping_verbose = 1
+            # early_stopping_callback = keras.callbacks.EarlyStopping(monitor=self.model_options.early_stopping_monitor,
+            #                                                         min_delta=self.model_options.early_stopping_min_delta,
+            #                                                         patience=self.model_options.early_stopping_patience,
+            #                                                         verbose=self.model_options.early_stopping_verbose)
+            # callback_list.append(early_stopping_callback)
+            # Then TRAIN
+            training_history = model.fit(train_ratings, train_labels, epochs=options.EPOCHS, batch_size=options.TRAINING_BATCH_SIZE, validation_data=(test_ratings, test_labels), verbose=1, callbacks=[])
 
-        loss, acc = new_model.evaluate(test_ratings, test_labels)
-        print("Restored model accuracy: {:5.2f}%".format(100*acc))
+            # Then Observe if there was an improvement
+            results = model.evaluate(test_ratings, test_labels)
+            print('-'*100)
+            print("{} Attribute inference results after training (Test Data)\nLoss: {}\nAccuracy: {}".format(
+                options.inference_target, results[0], results[1]))
+            print('-'*100)
+
+            ###############################################
+            #  Save the model
+            ###############################################
+            model_save_path = get_NN_model_location(test_percentage)
+            # Save entire model to a HDF5 file
+            if not os.path.exists(options.model_folder):
+                os.makedirs(options.model_folder)
+
+            model.save(model_save_path)
+
+
+            ###############################################
+            #  Load the model (Just to make sure it saved correctly)
+            ###############################################
+            new_model = keras.models.load_model(model_save_path)
+            # new_model.summary()
+            new_model.compile(optimizer=tf.train.AdamOptimizer(),
+                        loss='sparse_categorical_crossentropy',
+                        metrics=['accuracy'])
+
+            loss, acc = new_model.evaluate(test_ratings, test_labels)
+            print("Restored model accuracy: {:5.2f}%".format(100*acc))

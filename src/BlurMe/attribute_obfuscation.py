@@ -148,7 +148,7 @@ def load_NN_and_movie_lists(model_save_path):
     return model, categorical_movies
 
 def test_NN_with_user(model, user_vector, user_attribute, categorical_movies, chosen_k):
-    dataset = load_dataset(0)
+    dataset = load_dataset(0, chosen_k)
     mf = get_rating_predictor_using_training_data(dataset.MF_training)
 
     '''
@@ -198,7 +198,7 @@ def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies,
     success_obfuscated = 0
     total_num_users = 0 
     modified_user_item_matrix = [] # Includes user ids
-    dataset = load_dataset(0)
+    dataset = load_dataset(0, chosen_k)
 
     # if options.inference_target == 'gender':
     #     test_labels = [dataset.user_info[user_id]['gender'] for user_id in test_user_ids]
@@ -299,11 +299,10 @@ def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies,
 
 if __name__ == "__main__":
 
-    # Retrieve sample user 
-    dataset = load_dataset(0)
-
     # Results across all NNs
     for k in options.k_values:
+        dataset = load_dataset(0, k)
+
         non_obfuscated_losses = []
         non_obfuscated_accuracies = []
         obfuscated_losses = []
@@ -316,7 +315,7 @@ if __name__ == "__main__":
 
         for test_percentage in options.TEST_PERCENTAGES:
             # Load model for every dataset
-            dataset = load_dataset(test_percentage)
+            dataset = load_dataset(test_percentage, k)
             (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids, test_user_ids) = dataset.get_training_testing_for_NN()
 
             saved_model_location = get_NN_model_location(test_percentage)

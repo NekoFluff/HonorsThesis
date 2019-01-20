@@ -12,7 +12,7 @@ if __name__ == "__main__":
     obfuscated_baseline_accuracies = []
 
     for test_percentage in options.TEST_PERCENTAGES:
-        dataset = load_dataset(test_percentage)
+        dataset = load_dataset(test_percentage, 0)
         (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids,
                                                                     test_user_ids) = dataset.get_training_testing_for_NN()
 

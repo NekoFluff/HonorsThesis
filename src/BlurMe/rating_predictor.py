@@ -47,12 +47,12 @@ def get_rating_predictor_using_obscured_data(training_data, modified_user_item_m
 
     return mf
 
-def view_change_in_results():
+def view_change_in_results(remove_k):
 
     # Compute results with differing values of k
     for precision_recall_k in options.precision_at_k_values:
 
-        dataset = load_dataset(0)
+        dataset = load_dataset(0, 0)
 
         mf1 = get_rating_predictor_using_training_data(training_data=dataset.MF_training, training_enabled=False)
         mf1_mse = mf1.mse(dataset.MF_testing)
@@ -68,7 +68,7 @@ def view_change_in_results():
         # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
         for test_percentage in options.TEST_PERCENTAGES: 
             
-            dataset = load_dataset(test_percentage)
+            dataset = load_dataset(test_percentage, remove_k)
             (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids, test_user_ids) = dataset.get_training_testing_for_NN()
             model, categorical_movies = load_NN_and_movie_lists(get_NN_model_location(test_percentage))
 
@@ -115,17 +115,16 @@ if __name__ == "__main__":
     from attribute_inference_NN import get_NN_model_location
     
     if generate:
-        get_rating_predictor_using_training_data(load_dataset(0).MF_training, training_enabled=True, skip_already_trained=True)
+        get_rating_predictor_using_training_data(load_dataset(0, 0).MF_training, training_enabled=True, skip_already_trained=True)
         
-        # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
-        for test_percentage in options.TEST_PERCENTAGES: 
-            dataset = load_dataset(test_percentage)
+        # For every k value (obfuscation percentage), generate the rmse 
+        for k in options.k_values:
+            # Each NN will recommend different movies, which will affect how the Matrix Factorization is trained
+            for test_percentage in options.TEST_PERCENTAGES: 
+                dataset = load_dataset(test_percentage, k)
 
-            (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids, test_user_ids) = dataset.get_training_testing_for_NN()
-            model, categorical_movies = load_NN_and_movie_lists(get_NN_model_location(test_percentage))
-
-            # For every k value (obfuscation percentage), generate the rmse 
-            for k in options.k_values:
+                (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids, test_user_ids) = dataset.get_training_testing_for_NN()
+                model, categorical_movies = load_NN_and_movie_lists(get_NN_model_location(test_percentage))
 
                 print("Retrieving Obfuscated User Item Matrix to train Matrix Factorization Recommender...")
                 _, _, _, _, _, _, _, _, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, test_percentage, k)
@@ -133,5 +132,5 @@ if __name__ == "__main__":
                 print("\nTraining MF for k: {} and test_percentage: {:.2f}".format(k, test_percentage))
                 get_rating_predictor_using_obscured_data(dataset.MF_training, modified_user_item_matrix=modified_user_item_matrix, test_percentage=test_percentage, k_obfuscation=k, training_enabled=True, skip_already_trained=True)
 
-
-        view_change_in_results()
+    for remove_k in options.k_values:
+        view_change_in_results(remove_k)

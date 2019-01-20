@@ -7,3 +7,4 @@ src/recommendation/tmp/*
 **/*results*
 **/*old_3k*
 **/data
+**/ALL_MF_train_test_attriguard_data
