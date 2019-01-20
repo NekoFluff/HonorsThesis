@@ -176,19 +176,18 @@ if __name__ == "__main__":
                 options.inference_target, results[0], results[1]))
             print('-'*100)
 
-
-            # early_stopping_enabled = True
-            # early_stopping_monitor = 'val_loss'
-            # early_stopping_min_delta = 0.01
-            # early_stopping_patience = 3 # Number of epochs with no improvement
-            # early_stopping_verbose = 1
-            # early_stopping_callback = keras.callbacks.EarlyStopping(monitor=self.model_options.early_stopping_monitor,
-            #                                                         min_delta=self.model_options.early_stopping_min_delta,
-            #                                                         patience=self.model_options.early_stopping_patience,
-            #                                                         verbose=self.model_options.early_stopping_verbose)
-            # callback_list.append(early_stopping_callback)
+            callback_list = []
+            early_stopping_monitor = 'val_loss'
+            early_stopping_min_delta = 0
+            early_stopping_patience = 20 # Number of epochs with no improvement
+            early_stopping_verbose = 1
+            early_stopping_callback = keras.callbacks.EarlyStopping(monitor=early_stopping_monitor,
+                                                                    min_delta=early_stopping_min_delta,
+                                                                    patience=early_stopping_patience,
+                                                                    verbose=early_stopping_verbose)
+            callback_list.append(early_stopping_callback)
             # Then TRAIN
-            training_history = model.fit(train_ratings, train_labels, epochs=options.EPOCHS, batch_size=options.TRAINING_BATCH_SIZE, validation_data=(test_ratings, test_labels), verbose=1, callbacks=[])
+            training_history = model.fit(train_ratings, train_labels, epochs=options.EPOCHS, batch_size=options.TRAINING_BATCH_SIZE, validation_data=(test_ratings, test_labels), verbose=1, callbacks=callback_list)
 
             # Then Observe if there was an improvement
             results = model.evaluate(test_ratings, test_labels)
