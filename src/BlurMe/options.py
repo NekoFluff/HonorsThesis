@@ -5,6 +5,7 @@ import os
 inference_target = 'age' # 'gender', 'age', or 'job'
 average_or_predicted_ratings = 'average' #'predicted' or 'average'
 chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
+chosen_dataset = 'attriguard' # 'either 'movielens' or attriguard'
 
 ##################################
 # Folder Location options:

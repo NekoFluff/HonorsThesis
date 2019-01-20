@@ -6,3 +6,4 @@ src/recommendation/tmp/*
 **/*NN_train_test_data*
 **/*results*
 **/*old_3k*
+**/data

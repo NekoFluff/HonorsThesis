@@ -84,6 +84,9 @@ class user_item_loader(object):
         '''
         inference_target: 'age', 'gender', or 'job'. Each option will modify the training_y
         '''
+
+        # TODO: Use options.chosen_dataset to control which data is fed
+        
         self.user_item_matrix = data_matrix_train # Without k most recent ratings
         self.user_item_averages = np.mean(self.user_item_matrix, axis=0) # Column averages
 
