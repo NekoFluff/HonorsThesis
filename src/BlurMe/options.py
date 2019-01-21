@@ -2,10 +2,13 @@ import os
 ##################################
 # Obfuscation options:
 ##################################
-inference_target = 'job' # 'gender', 'age', or 'job'
+inference_target = 'gender' # 'gender', 'age', or 'job'
 average_or_predicted_ratings = 'average' #'predicted' or 'average'
 chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
 chosen_dataset = 'attriguard' # 'either 'movielens' or attriguard'
+
+if chosen_dataset == 'attriguard':
+    inference_target = 'city'
 
 ##################################
 # Folder Location options:
@@ -39,7 +42,7 @@ else:
 
 TEST_PERCENTAGES = [0.20] # Percentage of users to have in the test set
 #k_values = [0.01, 0.05, 0.10, 0.15, 0.20, 25, 30, 35, 40, 45, 50] # If k < 1, then it is a percentage addition. Otherwise it is a flat addition of movies in order to obfuscate user attributes
-k_values = [10, 25, 30, 35, 40, 45]
+k_values = [0, 10, 25, 35, 40, 45]
 precision_at_k_values = [35]
 
 NUM_GENDER_CLASSES = 2 # Male and female
@@ -65,19 +68,31 @@ else:
 ##################################
 # Neural Network Training options:
 ##################################
-TRAINING_BATCH_SIZE = 32
-hidden_layer_size = 1000
+TRAINING_BATCH_SIZE = 100
+hidden_layer_size = 101
 
 if chosen_dataset == 'movielens':
-    EPOCHS = 17
+    EPOCHS = 50
 else:
-    EPOCHS = 1000
+    EPOCHS = 50
 
 
 ##################################
 # Matrix Factorization Training options:
 ##################################
-MF_TRAINING_ITERATIONS = 100
+
+if chosen_dataset == 'movielens':
+    MF_TRAINING_ITERATIONS = 100
+else:
+    MF_TRAINING_ITERATIONS = 750
 latent_matrix_dimension = 128 # Dimension of latent matrix
 
+if __name__ == "__main__":
+    import attribute_inference_NN
+    attribute_inference_NN.main()
 
+    import attribute_obfuscation
+    attribute_obfuscation.main()
+
+    import rating_predictor
+    rating_predictor.main()    

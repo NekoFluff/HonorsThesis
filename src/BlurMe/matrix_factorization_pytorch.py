@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 # Code was taken from:
 # http://www.albertauyeung.com/post/python-matrix-factorization/
@@ -25,16 +26,18 @@ class MF():
         self.iterations = iterations
 
         # Initialize user and item latent feature matrice
-        self.P = np.random.normal(scale=1./self.K, size=(self.num_users, self.K))
-        self.Q = np.random.normal(scale=1./self.K, size=(self.num_items, self.K))
+        self.P = torch.from_numpy(np.random.normal(scale=1./self.K, size=(self.num_users, self.K))).cuda()
+        self.Q = torch.from_numpy(np.random.normal(scale=1./self.K, size=(self.num_items, self.K))).cuda()
 
         # Initialize the biases
-        self.b_u = np.zeros(self.num_users)
-        self.b_i = np.zeros(self.num_items)
+        self.b_u = torch.from_numpy(np.zeros(self.num_users)).cuda()
+        self.b_i = torch.from_numpy(np.zeros(self.num_items)).cuda()
         self.b = np.mean(self.R[np.where(self.R != 0)])
 
     def train(self):
         # Create a list of training samples
+        print("Creating samples")
+
         self.samples = [
             (i, j, self.R[i, j])
             for i in range(self.num_users)
@@ -44,13 +47,22 @@ class MF():
 
         # Perform stochastic gradient descent for number of iterations
         training_process = []
+        print("Started training process")
         for i in range(self.iterations):
+            print("Shuffle")
+
             np.random.shuffle(self.samples)
+            print("Started SGD")
+
             self.sgd()
+            print("SGD")
             mse = self.mse(self.R)
+            print("MSE")
+
             training_process.append((i, mse))
             if (i+1) % 5 == 0:
                 print("Iteration: %d ; RMSE = %.4f" % (i+1, mse))
+            print("Iteration: %d ; RMSE = %.4f" % (i+1, mse))
 
         return training_process
 
@@ -139,11 +151,7 @@ class MF():
                 precision = len(both_set)/(len(recommended_set))
             else:
                 precision = 0
-                
-            if not len(relevant_set) == 0:
-                recall = len(both_set)/len(relevant_set)
-            else:
-                recall = 0
+            recall = len(both_set)/len(relevant_set)
 
             user_precision_list.append(precision)
             user_recall_list.append(recall)
@@ -158,7 +166,11 @@ class MF():
         """
         Perform stochastic graident descent
         """
+        x = 0
+        total = len(self.samples)
+
         for i, j, r in self.samples:
+            x += 1
             # Computer prediction and error
             prediction = self.get_rating(i, j)
             e = (r - prediction)
@@ -170,20 +182,20 @@ class MF():
             # Update user and item latent feature matrices
             self.P[i, :] += self.alpha * (e * self.Q[j, :] - self.beta * self.P[i,:])
             self.Q[j, :] += self.alpha * (e * self.P[i, :] - self.beta * self.Q[j,:])
+            print("Updated ", x, total)
     def get_rating(self, i, j):
         """
         Get the predicted rating of user i and item j
         """
-        #print("Dot: ", self.P[i, :].dot(self.Q[j, :].T))
-
-        prediction = self.b + self.b_u[i] + self.b_i[j] + self.P[i, :].dot(self.Q[j, :].T)
+        #print("Dot: ", self.P[i, :].dot(torch.transpose(self.Q[j, :], -1, 0)))
+        prediction = self.b + self.b_u[i] + self.b_i[j] + self.P[i, :].dot(torch.transpose(self.Q[j, :], -1, 0))
         return prediction
 
     def full_matrix(self):
         """
         Computer the full matrix using the resultant biases, P and Q
         """
-        return self.b + self.b_u[:,np.newaxis] + self.b_i[np.newaxis:,] + self.P.dot(self.Q.T)
+        return self.b + self.b_u[:,np.newaxis] + self.b_i[np.newaxis:,] + self.P.dot(torch.transpose(self.Q, 0 ,1))
     
     def save(self, folder_location):
         np.save(folder_location+"/b.npy", self.b)    # .npy extension is added if not given

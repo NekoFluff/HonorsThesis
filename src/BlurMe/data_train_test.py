@@ -120,15 +120,16 @@ class user_item_loader(object):
             data_matrix_train = copy.deepcopy(data_matrix)
 
             # remove K items from each user (K most recent rated items)
-            for user_id in range(data_matrix_train.shape[0]):
-                items_rm = data_user_item_train[user_id][-remove_k:]
+            if remove_k > 0:
+                for user_id in range(data_matrix_train.shape[0]):
+                    items_rm = data_user_item_train[user_id][-remove_k:]
 
-                # remove K items
-                data_user_item_train[user_id] = data_user_item_train[user_id][:-remove_k]
+                    # remove K items
+                    data_user_item_train[user_id] = data_user_item_train[user_id][:-remove_k]
 
-                # update it in user_item matrix
-                for item_id in items_rm:
-                    data_matrix_train[user_id, item_id] = 0
+                    # update it in user_item matrix
+                    for item_id in items_rm:
+                        data_matrix_train[user_id, item_id] = 0
 
             print('Data Loaded | Data Shape (Users, Items):', data_matrix.shape)
             print('Max Seq Len:', max_seq_len)

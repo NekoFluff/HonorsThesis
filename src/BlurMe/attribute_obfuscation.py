@@ -92,16 +92,18 @@ def load_NN_and_movie_lists(model_save_path):
 
         # Sort the movie scores
         sorted_movie_scores = sorted(movie_scores, key=lambda x: x[1], reverse=True)  # Sort based on timestamp
-        # print("\nSample sorted predictions (First 5):")
-        # for i in sorted_movie_scores[:5]:
-        #     print(i)
+        print("\nSample sorted predictions (First 5):")
+        for i in sorted_movie_scores[:5]:
+            print(i)
 
-        # print("\nSample sorted predictions (Last 5):")
-        # for i in sorted_movie_scores[-5:]:
-        #     print(i)
-        # print('-'*100)
+        print("\nSample sorted predictions (Last 5):")
+        for i in sorted_movie_scores[-5:]:
+            print(i)
+        print('-'*100)
 
         # Split the movie scores into L_M and L_F 
+        L_M = []
+        L_F = []
         for index, score_pair in enumerate(sorted_movie_scores):
             if score_pair[1] <= 0:
                 print("Split Scores at Index:", index)
@@ -122,6 +124,8 @@ def load_NN_and_movie_lists(model_save_path):
         movie_scores = [(movie_index, np.argmax(p), p[np.argmax(p)]) for movie_index, p in enumerate(predictions)] # categorized by argmax, scored by softmax
     elif options.inference_target == 'age':
         movie_scores = [(movie_index, np.argmax(p), p[np.argmax(p)]) for movie_index, p in enumerate(predictions)] # categorized by argmax, scored by softmax
+    elif options.inference_target == 'city':
+        movie_scores = [(movie_index, np.argmax(p), p[np.argmax(p)]) for movie_index, p in enumerate(predictions)]
     else:
         print("Please use 'age', 'gender', or 'job' as the inference target. Set the inference target in options.py file.")
     
@@ -297,7 +301,7 @@ def test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies,
 
     return non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, non_obfuscated_auc_micro, non_obfuscated_auc_macro, obfuscated_auc_micro, obfuscated_auc_macro, modified_user_item_matrix #(non_obfuscated_result, obfuscated_result)
 
-if __name__ == "__main__":
+def main():
 
     # Results across all NNs
     for k in options.k_values:
@@ -318,7 +322,7 @@ if __name__ == "__main__":
             dataset = load_dataset(test_percentage, k)
             (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids, test_user_ids) = dataset.get_training_testing_for_NN()
 
-            saved_model_location = get_NN_model_location(test_percentage)
+            saved_model_location = get_NN_model_location(test_percentage, k)
             model, categorical_movies = load_NN_and_movie_lists(saved_model_location)
 
             non_obfuscated_loss, non_obfuscated_acc, obfuscated_loss, obfuscated_acc, non_obfuscated_auc_micro, non_obfuscated_auc_macro, obfuscated_auc_micro, obfuscated_auc_macro, modified_user_item_matrix = test_NN(model, test_ratings, test_labels, test_user_ids, categorical_movies, test_percentage, k)
@@ -361,3 +365,6 @@ if __name__ == "__main__":
         print("Saved at " + save_location)
         np.savetxt(save_location, results)
 
+
+if __name__ == "__main__":
+    main()

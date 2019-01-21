@@ -10,8 +10,8 @@ from data_train_test import load_dataset
 
 
 
-def get_NN_model_location(test_percentage):
-    return options.model_folder + '/{}_inference_NN_{:.2f}_split.h5'.format(options.inference_target, test_percentage)
+def get_NN_model_location(test_percentage, k_value):
+    return options.model_folder + '/{}_inference_NN_{:.2f}_split_{}k_removed.h5'.format(options.inference_target, test_percentage, k_value)
 
 ###############################################
 #  Build the model
@@ -26,9 +26,9 @@ def build_model():
 
     hidden_layer = keras.layers.Dense(options.hidden_layer_size,
                                       name='hidden_layer', activation='relu', kernel_regularizer=keras.regularizers.l2(0.01))(user_input_layer)
-
+    dropout_layer = keras.layers.Dropout(0.7)(hidden_layer)
     # Reshape to be a single number (shape will be (None, 1))
-    output_layer = keras.layers.Dense(options.NUM_CLASSES, activation='softmax')(hidden_layer)
+    output_layer = keras.layers.Dense(options.NUM_CLASSES, activation='softmax')(dropout_layer)
 
     model = keras.models.Model(
         inputs=[user_input_layer], outputs=[output_layer])
@@ -119,11 +119,11 @@ def auc(y_test, y_score, test_percentage, k):
                 ''.format(roc_auc["macro"]),
             color='navy', linestyle=':', linewidth=4)
 
-    colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-    for i, color in zip(range(n_classes), colors):
-        plt.plot(fpr[i], tpr[i], color=color, lw=lw,
-                label='ROC curve of class {0} (area = {1:0.2f})'
-                ''.format(i, roc_auc[i]))
+    # colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+    # for i, color in zip(range(n_classes), colors):
+    #     plt.plot(fpr[i], tpr[i], color=color, lw=lw,
+    #             label='ROC curve of class {0} (area = {1:0.2f})'
+    #             ''.format(i, roc_auc[i]))
 
     plt.plot([0, 1], [0, 1], 'k--', lw=lw)
     plt.xlim([0.0, 1.0])
@@ -137,11 +137,9 @@ def auc(y_test, y_score, test_percentage, k):
     # plt.show()
     return roc_auc["micro"], roc_auc["macro"]
 
-###############################################
-#  Compile many models, each using their own test percentage
-###############################################
-if __name__ == "__main__":
 
+def main():
+    
     for k in options.k_values:
         for test_percentage in options.TEST_PERCENTAGES:
             (train_ratings, train_labels), (test_ratings, test_labels), (train_user_ids,
@@ -152,7 +150,7 @@ if __name__ == "__main__":
             #  Compile the model (optimizer, loss, and metrics)
             ###############################################
             model.compile(optimizer=tf.train.AdamOptimizer(),
-                        loss='sparse_categorical_crossentropy',
+                        loss='sparse_categorical_crossentropy',#keras.losses.categorical_crossentropy,
                         metrics=['accuracy'])
 
             ###############################################
@@ -167,7 +165,8 @@ if __name__ == "__main__":
 
             print("First Test Rating: ", test_ratings[0])
             print("First test label:", test_labels[0])
-
+            print("Second Test Rating: ", test_ratings[1])
+            print("Second test label:", test_labels[1])
             # Observce the BASELINE
             results = model.evaluate(test_ratings, test_labels)
 
@@ -179,7 +178,7 @@ if __name__ == "__main__":
             callback_list = []
             early_stopping_monitor = 'val_loss'
             early_stopping_min_delta = 0
-            early_stopping_patience = 20 # Number of epochs with no improvement
+            early_stopping_patience = 10 # Number of epochs with no improvement
             early_stopping_verbose = 1
             early_stopping_callback = keras.callbacks.EarlyStopping(monitor=early_stopping_monitor,
                                                                     min_delta=early_stopping_min_delta,
@@ -199,7 +198,7 @@ if __name__ == "__main__":
             ###############################################
             #  Save the model
             ###############################################
-            model_save_path = get_NN_model_location(test_percentage)
+            model_save_path = get_NN_model_location(test_percentage, k)
             # Save entire model to a HDF5 file
             if not os.path.exists(options.model_folder):
                 os.makedirs(options.model_folder)
@@ -218,3 +217,9 @@ if __name__ == "__main__":
 
             loss, acc = new_model.evaluate(test_ratings, test_labels)
             print("Restored model accuracy: {:5.2f}%".format(100*acc))
+
+###############################################
+#  Compile many models, each using their own test percentage
+###############################################
+if __name__ == "__main__":
+    main()

@@ -53,27 +53,31 @@ class Data_Class:
         input_test_file.close()
         
 #####################################################
+    def old_input_train_label(self):
+        self.train_label=np.full([self.number_of_train,self.number_of_label],0,dtype=np.float32)
+        input_train_label=np.loadtxt(train_label_filepath,dtype=np.int)
+        for i in np.arange(self.train_label.shape[0]):
+            self.train_label[i,input_train_label[i]]=1
+
+#####################################################
+    def old_input_test_label(self):
+        self.test_label=np.full([self.number_of_test,self.number_of_label],0,dtype=np.float32)
+        input_test_label=np.loadtxt(test_label_filepath,dtype=np.int)
+        for i in np.arange(self.test_label.shape[0]):
+            self.test_label[i,input_test_label[i]]=1
+
+#####################################################
     def input_train_label(self):
-        # self.train_label=np.full([self.number_of_train,self.number_of_label],0,dtype=np.float32)
-        # input_train_label=np.loadtxt(train_label_filepath,dtype=np.int)
-        # for i in np.arange(self.train_label.shape[0]):
-        #     self.train_label[i,input_train_label[i]]=1
         self.train_label=np.full([self.number_of_train],0,dtype=np.float32)
         input_train_label=np.loadtxt(train_label_filepath,dtype=np.int)
         for i in np.arange(self.train_label.shape[0]):
             self.train_label[i]=input_train_label[i]
-#####################################################
-    def input_test_label(self):
-        # self.test_label=np.full([self.number_of_test,self.number_of_label],0,dtype=np.float32)
-        # input_test_label=np.loadtxt(test_label_filepath,dtype=np.int)
-        # for i in np.arange(self.test_label.shape[0]):
-        #     self.test_label[i,input_test_label[i]]=1
 
+    def input_test_label(self):
         self.test_label=np.full([self.number_of_test],0,dtype=np.float32)
         input_test_label=np.loadtxt(test_label_filepath,dtype=np.int)
         for i in np.arange(self.test_label.shape[0]):
             self.test_label[i]=input_test_label[i]
-#####################################################
 
 if __name__ == "__main__":
     X = Data_Class()
