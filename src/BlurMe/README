@@ -11,14 +11,14 @@ Adjust as necessary. Once you have chosen your settings follow these next steps:
 -----------------------------------------------------------------------------------------------------------
 
 HOW TO USE
-FIRST, run attribute_inference_NN.py to generate the Neural Networks. One neural network will be generated per TEST_PERCENTAGE (in options.py) since each neural network will be trained with a different percentage of the training data, chosen at random.
+FIRST, run attribute_inference_NN.py to generate the Neural Networks. One neural network will be generated per TEST_PERCENTAGE and k_value pair (in options.py) since each neural network will be trained with a different percentage of the training data, chosen at random.
 
 Information about the neural network:
     - Input is one-hot encoding
     - Hidden layer is 100 neurons (can be changed in options.py)
     - Last layer is softmax
     - Loss function is cross entropy Loss
-    - Trained over 17 EPOCHS (set in options.py)
+    - Trained over 50 EPOCHS (set in options.py)
 
 SECOND, run attribute_obfuscation.py. This will generate results in a results folder. 
     - (Accuracy of NN before obfuscation and after obfuscation with different levels of K Obfuscation where K is the number of movies to add to each user)
@@ -40,7 +40,7 @@ HOW OBFUSCATION WORKS:
 2. The lists are sorted corresponding to a score in decreasing order
 3. In the BlurMe paper, this 'score' is calculated using the weights/coefficients from their Logistic Regression Inference Attack
 4. In this work, we follow Attrigaurd's NN Inference Attack approach. 
-5. In order to calculate scores for the BlurMe approach, we input user vectors where each vector only contains 1 movie viewed with a rating of 5 (MAX)
+5. In order to calculate scores for the Attrigaurd Neural Network approach, we input user vectors where each vector only contains 1 movie viewed with a rating of 5 (MAX)
 6. With the softmax output of each vector input, we determine which class the vector belongs to.
     e.g. [5, 0 ,0 ,0] .. corresponds to movie #0 having a rating of 5
          The softmax output could be [0.95, 0.05], in which case if this corresponds to [Male, Female] it would be a Male movie with score 0.95
@@ -64,7 +64,7 @@ Fourth row is non_obfuscated_accuracies
 Fifth row is obfuscated_accuracies
 Sixth row is non_obfuscated_auc_micros
 Seventh row is non_obfuscated_auc_macros
-Eigth row is obfuscated_auc_micros
+Eighth row is obfuscated_auc_micros
 Ninth row is obfuscated_auc_macros
 
 For the matrix_factorization_recommender_results_precisionXk.out files:

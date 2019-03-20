@@ -110,7 +110,7 @@ def view_change_in_results():
 
 def main():
     # IMPORTANT: Set generate to True if you wish to generate the Matrix Factorizations, otherwise set to false to skip training
-    generate = True
+    generate = False
 
     from attribute_obfuscation import test_NN, load_NN_and_movie_lists
     from attribute_inference_NN import get_NN_model_location

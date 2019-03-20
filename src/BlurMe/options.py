@@ -2,7 +2,7 @@ import os
 ##################################
 # Obfuscation options:
 ##################################
-inference_target = 'gender' # 'gender', 'age', or 'job'
+inference_target = 'job' # 'gender', 'age', or 'job'
 average_or_predicted_ratings = 'average' #'predicted' or 'average'
 chosen_strategy = 'greedy' # 'sampled', 'random', or 'greedy'
 chosen_dataset = 'attriguard' # 'either 'movielens' or attriguard'
@@ -69,7 +69,7 @@ else:
 # Neural Network Training options:
 ##################################
 TRAINING_BATCH_SIZE = 100
-hidden_layer_size = 101
+hidden_layer_size = 100
 
 if chosen_dataset == 'movielens':
     EPOCHS = 50
@@ -84,7 +84,7 @@ else:
 if chosen_dataset == 'movielens':
     MF_TRAINING_ITERATIONS = 100
 else:
-    MF_TRAINING_ITERATIONS = 750
+    MF_TRAINING_ITERATIONS = 1000
 latent_matrix_dimension = 128 # Dimension of latent matrix
 
 if __name__ == "__main__":

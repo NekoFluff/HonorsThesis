@@ -33,10 +33,10 @@ class user_item_loader(object):
 
                 # Combine and train_app and test_app
                 #TODO: Uncomment the lower two lines to use entire dataset
-                #app_ratings = np.concatenate((X.train_app, X.test_app), axis=0)
-                #app_ids = np.concatenate((X.train_app_ids, X.test_app_ids), axis=0)
-                app_ratings = X.test_app
-                app_ids = np.array(X.test_app_ids)
+                app_ratings = np.concatenate((X.train_app, X.test_app), axis=0)
+                app_ids = np.concatenate((X.train_app_ids, X.test_app_ids), axis=0)
+                #app_ratings = X.test_app
+                #app_ids = np.array(X.test_app_ids)
                 app_ratings_K_removed = copy.deepcopy(app_ratings)
 
                 # remove K items from each user (K most recent rated items)

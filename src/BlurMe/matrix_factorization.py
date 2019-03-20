@@ -1,5 +1,5 @@
 import numpy as np
-
+import options
 # Code was taken from:
 # http://www.albertauyeung.com/post/python-matrix-factorization/
 
@@ -96,6 +96,10 @@ class MF():
         # Not recommended item: Has a predicted rating < 3.5
 
         # Precision at k is the proportion of recommended items in the top-k set that are relevant
+        if options.chosen_dataset == 0:
+            rating_bar = 3.5
+        else:
+            rating_bar = 0.7 # On a scale of 0 to 1
 
         user_precision_list = []
         user_recall_list = []
@@ -113,7 +117,7 @@ class MF():
 
             # Find k ratings whose PREDICTED rating is >= 3.5
             for i in range(min(k, len(movie_ratings_for_user))):
-                if (movie_ratings_for_user[i][1] >= 3.5):
+                if (movie_ratings_for_user[i][1] >= rating_bar):
                     recommended_set.add(movie_ratings_for_user[i][0])
                 else:
                     break
@@ -127,7 +131,7 @@ class MF():
 
             # Find k ratings whose TRUE rating is >= 3.5   
             for i in range(len(true_movie_ratings_for_user)):
-                if (true_movie_ratings_for_user[i][1] >= 3.5):
+                if (true_movie_ratings_for_user[i][1] >= rating_bar):
                     relevant_set.add(movie_ratings_for_user[i][0])
                 else:
                     break

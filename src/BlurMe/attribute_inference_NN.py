@@ -132,7 +132,7 @@ def auc(y_test, y_score, test_percentage, k):
     plt.ylabel('True Positive Rate')
     plt.title('Reciever Operating Characteristic')
     plt.legend(loc="lower right")
-    plt.savefig(options.plots_folder + 'ROC_test{:.2f}%_{:.2f}k_obfuscation.png'.format(test_percentage, k))
+    plt.savefig(options.plots_folder + '{}_{}_ROC_test{:.2f}%_{:.2f}k_obfuscation.png'.format(options.chosen_dataset, options.inference_target, test_percentage, k))
     plt.close()
     # plt.show()
     return roc_auc["micro"], roc_auc["macro"]
