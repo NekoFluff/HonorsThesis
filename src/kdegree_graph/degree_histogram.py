@@ -7,8 +7,8 @@ def Average(lst):
     return sum(lst) / len(lst)
 
 
-text_file = open("Enron_Output10.txt", "r")
-# text_file = open("test1.txt", "r")
+text_file = open("degrees/Enron_Output10.txt", "r")
+# text_file = open("degrees/test1.txt", "r")
 lines = text_file.read().split(' ')
 lines = map(lambda deg: deg.replace("\n", ""), lines)
 lines = list(filter(lambda deg: deg != "", lines))
